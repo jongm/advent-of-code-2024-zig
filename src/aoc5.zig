@@ -1,7 +1,7 @@
 const std = @import("std");
 const testing = std.testing;
 
-const raw = @embedFile("input5.txt");
+const raw = @embedFile("inputs/input5.txt");
 
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 const allocator = gpa.allocator();
@@ -10,8 +10,8 @@ pub fn main() !void {
     var parts = std.mem.splitSequence(u8, raw, "\n\n");
 
     // RULES
-    var rules = std.ArrayList([2]u8).init(allocator);
-    defer rules.deinit();
+    var rules: std.ArrayListUnmanaged([2]u8) = .empty;
+    defer rules.deinit(allocator);
     var rules_iter = std.mem.splitSequence(u8, parts.next().?, "\n");
 
     while (rules_iter.next()) |row| {
@@ -24,7 +24,7 @@ pub fn main() !void {
             new_rule[ix] = try std.fmt.parseUnsigned(u8, num, 10);
         }
         // std.debug.print("RULE: {any} \n", .{new_rule});
-        try rules.append(new_rule);
+        try rules.append(allocator, new_rule);
     }
 
     // PAGES
@@ -35,13 +35,13 @@ pub fn main() !void {
         if (row.len == 0) {
             break;
         }
-        var page = std.ArrayList(u8).init(allocator);
-        defer page.deinit();
+        var page: std.ArrayListUnmanaged(u8) = .empty;
+        defer page.deinit(allocator);
         var row_iter = std.mem.splitSequence(u8, row, ",");
         while (row_iter.next()) |num| {
             // std.debug.print("NUM: {any} \n", .{num});
             const nump = try std.fmt.parseUnsigned(u8, num, 10);
-            try page.append(nump);
+            try page.append(allocator, nump);
         }
         // std.debug.print("PAGE: {any} \n", .{page.items});
         const page_ok = check_page(page.items, rules.items);

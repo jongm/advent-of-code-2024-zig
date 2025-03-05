@@ -1,7 +1,7 @@
 const std = @import("std");
 const testing = std.testing;
 
-const raw = @embedFile("input6.txt");
+const raw = @embedFile("inputs/input6.txt");
 
 // const raw =
 //     \\....#.....

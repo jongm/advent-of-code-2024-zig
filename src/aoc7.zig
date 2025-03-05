@@ -1,7 +1,7 @@
 const std = @import("std");
 const testing = std.testing;
 
-const raw = @embedFile("input7.txt");
+const raw = @embedFile("inputs/input7.txt");
 
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 const allocator = gpa.allocator();
@@ -25,12 +25,12 @@ pub fn check_line(line: []const u8, power: u8) !u64 {
     const numbers_str: []const u8 = std.mem.trim(u8, row_iter.next().?, " ");
 
     var nums_iter = std.mem.splitScalar(u8, numbers_str, ' ');
-    var numbers = std.ArrayList(u64).init(allocator);
-    defer numbers.deinit();
+    var numbers: std.ArrayListUnmanaged(u64) = .empty;
+    defer numbers.deinit(allocator);
 
     while (nums_iter.next()) |num| {
         const nump = try std.fmt.parseUnsigned(u64, num, 10);
-        try numbers.append(nump);
+        try numbers.append(allocator, nump);
     }
 
     if (try check_operators(target, numbers.items, power)) {

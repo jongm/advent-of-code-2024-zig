@@ -1,9 +1,12 @@
 const std = @import("std");
 const testing = std.testing;
 
-const raw = @embedFile("input8.txt");
+const raw = @embedFile("inputs/input8.txt");
 
-var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+// var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+// const gpa_allocator = gpa.allocator();
+
+var gpa = std.heap.DebugAllocator(.{}){};
 const gpa_allocator = gpa.allocator();
 
 const MAX_CHARS = 8;
@@ -76,17 +79,17 @@ pub fn calculate_nodes_harmonic(matrix: anytype, node1: [2]usize, node2: [2]usiz
     }
 }
 
-pub fn nodes_to_map(data: []const u8, map: *std.AutoHashMap(u8, std.ArrayList([2]usize)), allocator: std.mem.Allocator, dimx: u8, dimy: u8) !void {
+pub fn nodes_to_map(data: []const u8, map: *std.AutoHashMapUnmanaged(u8, std.ArrayListUnmanaged([2]usize)), allocator: std.mem.Allocator, dimx: u8, dimy: u8) !void {
     for (data, 0..) |char, pos| {
         if ((char == '.') or (char == '\n')) continue;
         if (!map.contains(char)) {
-            try map.put(char, std.ArrayList([2]usize).init(allocator));
+            try map.put(allocator, char, std.ArrayListUnmanaged([2]usize).empty);
         }
         // try map.put(char, map.get(char).? + 1);
         var list = map.getPtr(char).?;
         const x: usize = std.math.cast(usize, pos).? % @as(usize, dimx + 1);
         const y: usize = std.math.cast(usize, pos).? / @as(usize, dimy + 1);
-        try list.append([2]usize{ x, y });
+        try list.append(allocator, [2]usize{ x, y });
         // std.debug.print("TEMP: {any} - {any}\n", .{ char, list.items });
     }
 }
@@ -96,9 +99,7 @@ pub fn main() !void {
     const allocator = arena.allocator();
     defer arena.deinit();
 
-    var map = std.AutoHashMap(u8, std.ArrayList([2]usize)).init(
-        allocator,
-    );
+    var map: std.AutoHashMapUnmanaged(u8, std.ArrayListUnmanaged([2]usize)) = .empty;
 
     try nodes_to_map(raw, &map, allocator, DIMX, DIMY);
 
@@ -161,9 +162,7 @@ test "example" {
     const allocator = arena.allocator();
     defer arena.deinit();
 
-    var map = std.AutoHashMap(u8, std.ArrayList([2]usize)).init(
-        allocator,
-    );
+    var map: std.AutoHashMapUnmanaged(u8, std.ArrayListUnmanaged([2]usize)) = .empty;
 
     try nodes_to_map(sample, &map, allocator, 12, 12);
 

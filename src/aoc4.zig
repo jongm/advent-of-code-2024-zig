@@ -4,7 +4,7 @@ const testing = std.testing;
 // var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 // const allocator = gpa.allocator();
 
-const raw = @embedFile("input4.txt");
+const raw = @embedFile("inputs/input4.txt");
 
 pub fn create_matrix_struct(comptime T: type, width: u32, height: u32) type {
     return struct { data: [width][height]T = undefined, width: u32 = width, height: u32 = height };

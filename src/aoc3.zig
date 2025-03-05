@@ -106,7 +106,7 @@ pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
 
-    const file = try std.fs.cwd().openFile("input3.txt", .{});
+    const file = try std.fs.cwd().openFile("src/inputs/input3.txt", .{});
     const read_buf = try file.readToEndAlloc(allocator, 1024 * 1024);
     defer allocator.free(read_buf);
 

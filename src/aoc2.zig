@@ -76,7 +76,7 @@ pub fn check_report(slice: []i32, depth: u8) bool {
 // }
 
 pub fn main() !void {
-    const file = try std.fs.cwd().openFile("input2.txt", .{});
+    const file = try std.fs.cwd().openFile("src/inputs/input2.txt", .{});
     defer file.close();
     var rbuf = std.io.bufferedReader(file.reader());
     var r = rbuf.reader();
@@ -95,8 +95,8 @@ pub fn main() !void {
         }
         const line = stream.?;
         var nums = std.mem.splitSequence(u8, line, " ");
-        var slice = std.ArrayList(i32).init(allocator);
-        defer slice.deinit();
+        var slice: std.ArrayListUnmanaged(i32) = .empty;
+        defer slice.deinit(allocator);
 
         while (nums.next()) |num| {
             const nump = std.fmt.parseUnsigned(i32, num, 10) catch |err| {
@@ -104,7 +104,7 @@ pub fn main() !void {
                 std.debug.print("Safe reports: {any}", .{err});
                 continue :mainloop;
             };
-            try slice.append(nump);
+            try slice.append(allocator, nump);
         }
 
         if (check_report(slice.items, max_damp)) {

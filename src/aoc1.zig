@@ -14,16 +14,16 @@ pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
 
-    const file = try std.fs.cwd().openFile("input1.txt", .{});
+    const file = try std.fs.cwd().openFile("src/inputs/input1.txt", .{});
     const read_buf = try file.readToEndAlloc(allocator, 1024 * 1024);
     defer allocator.free(read_buf);
 
     var it = std.mem.splitScalar(u8, read_buf, '\n');
 
-    var col1 = std.ArrayList(i32).init(allocator);
-    var col2 = std.ArrayList(i32).init(allocator);
-    defer col1.deinit();
-    defer col2.deinit();
+    var col1: std.ArrayListUnmanaged(i32) = .empty;
+    var col2: std.ArrayListUnmanaged(i32) = .empty;
+    defer col1.deinit(allocator);
+    defer col2.deinit(allocator);
 
     while (it.next()) |line| {
         if (line.len == 0) {
@@ -37,8 +37,8 @@ pub fn main() !void {
         const d1n = try std.fmt.parseUnsigned(i32, d1, 10);
         const d2n = try std.fmt.parseUnsigned(i32, d2, 10);
 
-        try col1.append(d1n);
-        try col2.append(d2n);
+        try col1.append(allocator, d1n);
+        try col2.append(allocator, d2n);
     }
 
     // std.debug.print("{d} - {d}\n", .{ col1.items.len, col2.items.len });
@@ -55,8 +55,8 @@ pub fn main() !void {
     }
     std.debug.print("Results: {d}\n", .{sum});
 
-    var exists = std.ArrayList(i32).init(allocator);
-    defer exists.deinit();
+    // var exists = std.ArrayListUnmanaged(i32);
+    // defer exists.deinit();
 
     var sum2: i64 = 0;
     for (col1.items) |num1| {
@@ -71,12 +71,12 @@ pub fn main() !void {
 
 // pub fn main() !void {
 //     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-//     const file_content = try std.fs.cwd().readFileAlloc(gpa.allocator(), "input1.txt", std.math.maxInt(usize));
+//     const file_content = try std.fs.cwd().readFileAlloc(gpa.allocator(), "inputs/input1.txt", std.math.maxInt(usize));
 //     std.debug.print("{any}\n", .{@TypeOf(file_content)});
 // }
 
 // pub fn main() !void {
-//     const file = try std.fs.cwd().openFile("input1.txt", .{});
+//     const file = try std.fs.cwd().openFile("inputs/input1.txt", .{});
 //     defer file.close();
 //     var rbuf = std.io.bufferedReader(file.reader());
 //     var r = rbuf.reader();
