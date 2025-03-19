@@ -236,7 +236,6 @@ test "sample" {
     var matrix = create_matrix_struct(u8, testX, testY){};
     read_into_matrix(testX, testY, sample, &matrix.data);
 
-    // var plots: std.AutoHashMapUnmanaged(u8, std.ArrayListUnmanaged([2]u8)) = .empty;
     var plots: std.ArrayListUnmanaged(std.ArrayListUnmanaged([2]u8)) = .empty;
 
     for (0..matrix.width) |xcord| {
