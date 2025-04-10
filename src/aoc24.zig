@@ -51,6 +51,15 @@ pub fn main() !void {
     //Part 2
     try parseInstructions(allocator, instructions, &operations);
     const wrong_wires = findWrongWires(operations);
+    var wrong_wires_nums: [3]u8 = undefined;
+    var wr: u8 = 0;
+    for (wrong_wires) |wire| {
+        if (wire[0] == 'z') {
+            const num = try std.fmt.parseInt(u8, wire[1..], 10);
+            wrong_wires_nums[wr] = num;
+            wr += 1;
+        }
+    }
     print("Wrong: {s}\n", .{wrong_wires});
 
     var rewire_map = std.StringArrayHashMapUnmanaged([]const u8).empty;
@@ -61,8 +70,17 @@ pub fn main() !void {
     for (wrong_wires) |wire| {
         if (wire[0] != 'z') {
             const match = traverseWireBack(wire, operations);
-            const match_num = try std.fmt.parseInt(u8, match[1..3], 10) - 1;
-            const use_num: u8 = if (match_num == 22) 20 else match_num;
+            const match_num = try std.fmt.parseInt(u8, match[1..3], 10);
+            var use_num: u8 = 0;
+            var dif: u8 = 255;
+            for (wrong_wires_nums) |num| {
+                if (num > match_num) continue;
+                const new_dif: u8 = match_num - num;
+                if (new_dif < dif) {
+                    use_num = num;
+                    dif = new_dif;
+                }
+            }
             _ = try std.fmt.bufPrint(&match_fixes[n], "z{d}", .{use_num});
             try rewire_map.put(allocator, wire, &match_fixes[n]);
             try rewire_map.put(allocator, &match_fixes[n], wire);
