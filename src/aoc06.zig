@@ -1,70 +1,41 @@
 const std = @import("std");
 const testing = std.testing;
+const print = std.debug.print;
 
-const raw = @embedFile("inputs/input6.txt");
+const raw = @embedFile("inputs/input06.txt");
 
-// const raw =
-//     \\....#.....
-//     \\.........#
-//     \\..........
-//     \\..#.......
-//     \\.......#..
-//     \\..........
-//     \\.#..^.....
-//     \\........#.
-//     \\#.........
-//     \\......#...
-// ;
-
-pub fn create_matrix_struct(comptime T: type, width: u32, height: u32) type {
-    return struct { data: [width][height]T = undefined, width: u32 = width, height: u32 = height };
-}
-
-pub fn read_into_matrix(comptime w: u8, comptime h: u8, string: []const u8, target: *[w][h]u8) void {
-    var lines = std.mem.splitSequence(u8, string, "\n");
+pub fn readIntoMatrix(comptime rows: u8, comptime cols: u8, string: []const u8, target: *[rows][cols]u8) void {
+    var lines = std.mem.splitScalar(u8, string, '\n');
     var row: u8 = 0;
     while (lines.next()) |line| : (row += 1) {
-        if (line.len == 0) {
-            break;
-        }
-        target[row] = line[0..w].*;
+        if (line.len == 0) break;
+        target[row] = line[0..cols].*;
     }
 }
 
 const directions = [_][2]i16{ [2]i16{ 0, -1 }, [2]i16{ 1, 0 }, [2]i16{ 0, 1 }, [2]i16{ -1, 0 } };
 
-const DIMX = 130;
-const DIMY = 130;
-const MAX_LOOPS = DIMX * DIMY;
-
-pub fn walk_matrix(matrix: anytype) bool {
+pub fn walkMatrix(comptime rows: u8, comptime cols: u8, matrix: *[rows][cols]u8, max_loops: u32) bool {
     const pos = std.mem.indexOfScalar(u8, raw, '^').?;
-    var x: usize = std.math.cast(usize, pos % @as(usize, DIMX + 1)).?;
-    var y: usize = std.math.cast(usize, pos / @as(usize, DIMY + 1)).?;
+    var col: usize = std.math.cast(usize, pos % @as(usize, cols + 1)).?;
+    var row: usize = std.math.cast(usize, pos / @as(usize, rows + 1)).?;
     var dir: u8 = 0;
-    // std.debug.print("START: {d}, X:{d}, Y:{d}\n", .{ pos, x, y });
-    std.debug.assert(matrix.data[y][x] == '^');
+    std.debug.assert(matrix[row][col] == '^');
 
-    // var seen: [DIMX * DIMY][4]i16 = undefined;
-    // var seen_count: u16 = 0;
     var loops: u16 = 0;
 
     while (true) : (loops += 1) {
-        matrix.data[y][x] = 'X';
-        var newx: i16 = @intCast(x);
-        var newy: i16 = @intCast(y);
+        matrix[row][col] = 'X';
+        var newcol: i16 = @intCast(col);
+        var newrow: i16 = @intCast(row);
 
-        // std.debug.print("SEEN: X{d}, Y:{d}, D1:{d}, D2:{d}\n", .{ x, y, directions[dir][0], directions[dir][1] });
-        // seen[seen_count] = [4]i16{ newx, newy, directions[dir][0], directions[dir][1] };
-        // seen_count += 1;
+        newcol += directions[dir][0];
+        newrow += directions[dir][1];
 
-        newx += directions[dir][0];
-        newy += directions[dir][1];
-
-        const in_map: bool = ((newx >= 0) and (newx <= matrix.width - 1) and (newy <= matrix.height - 1) and (newy >= 0));
+        const in_map: bool = ((newcol >= 0) and (newcol <= cols - 1) and (newrow <= rows - 1) and (newrow >= 0));
         if (!in_map) break;
 
-        if (matrix.data[std.math.cast(usize, newy).?][std.math.cast(usize, newx).?] == '#') {
+        if (matrix[std.math.cast(usize, newrow).?][std.math.cast(usize, newcol).?] == '#') {
             if (dir == 3) {
                 dir = 0;
             } else {
@@ -73,53 +44,43 @@ pub fn walk_matrix(matrix: anytype) bool {
             continue;
         }
 
-        x = std.math.cast(usize, newx).?;
-        y = std.math.cast(usize, newy).?;
+        col = std.math.cast(usize, newcol).?;
+        row = std.math.cast(usize, newrow).?;
 
-        if (loops > MAX_LOOPS) return true;
-
-        // const new_seen = [4]i16{ newx, newy, directions[dir][0], directions[dir][1] };
-
-        // for (0..seen_count) |i| {
-        //     if (std.mem.eql(i16, &seen[i], &new_seen)) {
-        //         return true;
-        //     }
-        // }
-
-        // std.debug.print("\n\n", .{});
-        // for (matrix.data) |row| {
-        //     std.debug.print("{s}\n", .{row});
-        // }
+        if (loops > max_loops) return true;
     }
     return false;
 }
 
 pub fn main() !void {
-    var matrix = create_matrix_struct(u8, DIMX, DIMY){};
+    const rows = 130;
+    const cols = 130;
+    const max_loops = rows * cols;
+    var matrix: [rows][cols]u8 = undefined;
 
-    read_into_matrix(DIMX, DIMY, raw, &matrix.data);
-    _ = walk_matrix(&matrix);
+    readIntoMatrix(rows, cols, raw, &matrix);
+    _ = walkMatrix(rows, cols, &matrix, max_loops);
     var res: u16 = 0;
-    for (matrix.data) |row| {
+    for (matrix) |row| {
         for (row) |cell| {
             if (cell == 'X') {
                 res += 1;
             }
         }
     }
-    std.debug.print("RESULT 1: {d}, ", .{res});
+    print("Result 1: {d}, ", .{res});
 
     var res2: u16 = 0;
-    for (0..DIMX) |x| {
-        for (0..DIMY) |y| {
-            read_into_matrix(DIMX, DIMY, raw, &matrix.data);
-            if (matrix.data[y][x] == '.') {
-                matrix.data[y][x] = '#';
-                if (walk_matrix(&matrix)) {
+    for (0..cols) |col| {
+        for (0..rows) |row| {
+            readIntoMatrix(rows, cols, raw, &matrix);
+            if (matrix[row][col] == '.') {
+                matrix[row][col] = '#';
+                if (walkMatrix(rows, cols, &matrix, max_loops)) {
                     res2 += 1;
                 }
             }
         }
     }
-    std.debug.print("RESULT 2: {d}, ", .{res2});
+    print("Result 2: {d}, ", .{res2});
 }
