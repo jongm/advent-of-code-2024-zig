@@ -1,5 +1,6 @@
 const std = @import("std");
 const testing = std.testing;
+const print = std.debug.print;
 
 const raw = @embedFile("inputs/input16.txt");
 
@@ -11,6 +12,52 @@ const Node = struct {
     previous: [2]usize,
     facing: [2]i16,
 };
+
+pub fn parseMap(string: []const u8, comptime rows: u8, comptime cols: u8, matrix: *[rows][cols]u8) void {
+    var iterator = std.mem.splitScalar(u8, string, '\n');
+    var row: u8 = 0;
+    while (iterator.next()) |values| : (row += 1) {
+        if (values.len == 0) break;
+        matrix.*[row] = values[0..cols].*;
+    }
+}
+
+pub fn printMap(matrix: anytype) void {
+    for (matrix) |row| {
+        for (row) |cell| {
+            print("{c}", .{cell});
+        }
+        print("\n", .{});
+    }
+    print("\n", .{});
+}
+
+const WrongPositionsError = error{MoreThanOneNodeApartError};
+
+pub fn calcDistance(start: [2]usize, end: [2]usize, facing: ?[2]i16) !usize {
+
+    // Facings: East (0,1) - South (1, 0) - West (0, -1) - North (-1, 0)
+    const dist_x = @max(start[0], end[0]) - @min(start[0], end[0]);
+    const dist_y = @max(start[1], end[1]) - @min(start[1], end[1]);
+    const move_distance: usize = dist_x + dist_y;
+    if (facing == null) {
+        return move_distance;
+    } else {
+        const end_row_int: i16 = @intCast(end[0]);
+        const end_col_int: i16 = @intCast(end[1]);
+        const start_row_int: i16 = @intCast(start[0]);
+        const start_col_int: i16 = @intCast(start[1]);
+
+        const dif_row: i16 = end_row_int - start_row_int;
+        const dif_col: i16 = end_col_int - start_col_int;
+        if ((@abs(dif_row) > 1) or (@abs(dif_col) > 1)) return WrongPositionsError.MoreThanOneNodeApartError;
+        const turn_distance: usize = @max(@abs(dif_row - facing.?[0]), @abs(dif_col - facing.?[1]));
+        const total_distance: usize = move_distance + (turn_distance * 1000);
+        // print("DIST from {any} to {any}: Difs[{d},{d}], total: {d}\n", .{ start, end, dif_row, dif_col, total_distance });
+
+        return total_distance;
+    }
+}
 
 pub fn main() !void {
     const rows = 141;
@@ -36,18 +83,18 @@ pub fn main() !void {
     const cost = result_path.items[0].f;
 
     // // printMap(matrix);
-    // std.debug.print("\n\n\n", .{});
+    // print("\n\n\n", .{});
     // for (result_path.items) |node| {
     //     matrix[node.pos[0]][node.pos[1]] = 'O';
     // }
     // // printMap(matrix);
-    std.debug.print("RESULT: {d}\n", .{cost});
+    print("Result: {d}\n", .{cost});
 
     // PART 2
 
     const best_nodes = try getAllBestNodes(allocator, rows, cols, &matrix, end_pos, cost, result_path);
 
-    // std.debug.print("Crossing {any}", .{node});
+    // print("Crossing {any}", .{node});
     for (best_nodes.items) |best| {
         matrix[best[0]][best[1]] = 'O';
     }
@@ -58,55 +105,9 @@ pub fn main() !void {
             if ((cell == 'O') or (cell == 'E') or (cell == 'S')) res2 += 1;
         }
     }
-    printMap(matrix);
+    // printMap(matrix);
 
-    std.debug.print("Result2 {d}\n", .{res2});
-}
-
-pub fn parseMap(string: []const u8, comptime rows: u8, comptime cols: u8, matrix: *[rows][cols]u8) void {
-    var iterator = std.mem.splitScalar(u8, string, '\n');
-    var row: u8 = 0;
-    while (iterator.next()) |values| : (row += 1) {
-        if (values.len == 0) break;
-        matrix.*[row] = values[0..cols].*;
-    }
-}
-
-pub fn printMap(matrix: anytype) void {
-    for (matrix) |row| {
-        for (row) |cell| {
-            std.debug.print("{c}", .{cell});
-        }
-        std.debug.print("\n", .{});
-    }
-    std.debug.print("\n", .{});
-}
-
-const WrongPositionsError = error{MoreThanOneNodeApartError};
-
-pub fn calcDistance(start: [2]usize, end: [2]usize, facing: ?[2]i16) !usize {
-
-    // Facings: East (0,1) - South (1, 0) - West (0, -1) - North (-1, 0)
-    const dist_x = @max(start[0], end[0]) - @min(start[0], end[0]);
-    const dist_y = @max(start[1], end[1]) - @min(start[1], end[1]);
-    const move_distance: usize = dist_x + dist_y;
-    if (facing == null) {
-        return move_distance;
-    } else {
-        const end_row_int: i16 = @intCast(end[0]);
-        const end_col_int: i16 = @intCast(end[1]);
-        const start_row_int: i16 = @intCast(start[0]);
-        const start_col_int: i16 = @intCast(start[1]);
-
-        const dif_row: i16 = end_row_int - start_row_int;
-        const dif_col: i16 = end_col_int - start_col_int;
-        if ((@abs(dif_row) > 1) or (@abs(dif_col) > 1)) return WrongPositionsError.MoreThanOneNodeApartError;
-        const turn_distance: usize = @max(@abs(dif_row - facing.?[0]), @abs(dif_col - facing.?[1]));
-        const total_distance: usize = move_distance + (turn_distance * 1000);
-        // std.debug.print("DIST from {any} to {any}: Difs[{d},{d}], total: {d}\n", .{ start, end, dif_row, dif_col, total_distance });
-
-        return total_distance;
-    }
+    print("Result 2 {d}\n", .{res2});
 }
 
 test "calc_distance" {
@@ -118,7 +119,7 @@ test "calc_distance" {
     const dist6 = try calcDistance([2]usize{ 3, 3 }, [2]usize{ 2, 3 }, [2]i16{ 1, 0 });
     const dist7 = try calcDistance([2]usize{ 3, 3 }, [2]usize{ 8, 5 }, null);
     const dist8 = try calcDistance([2]usize{ 5, 7 }, [2]usize{ 2, 1 }, null);
-    std.debug.print("Distances: 1: {d}, 2: {d}, 3: {d}, 4: {d}, 5: {d}, 6: {d}, 7: {d}, 8: {d} \n", .{ dist1, dist2, dist3, dist4, dist5, dist6, dist7, dist8 });
+    print("Distances: 1: {d}, 2: {d}, 3: {d}, 4: {d}, 5: {d}, 6: {d}, 7: {d}, 8: {d} \n", .{ dist1, dist2, dist3, dist4, dist5, dist6, dist7, dist8 });
 
     try testing.expect(dist1 == 2001);
     try testing.expect(dist2 == 1);
@@ -155,7 +156,7 @@ pub fn aStarAlgo(allocator: std.mem.Allocator, comptime rows: u8, comptime cols:
             }
         }
         current_node = unexplored_nodes.get(min_key).?;
-        // std.debug.print("CURRENT NODE: {any}, {any}\n", .{ min_key, current_node });
+        // print("CURRENT NODE: {any}, {any}\n", .{ min_key, current_node });
 
         _ = unexplored_nodes.remove(min_key);
         try explored_nodes.put(allocator, min_key, current_node);
@@ -183,17 +184,17 @@ pub fn aStarAlgo(allocator: std.mem.Allocator, comptime rows: u8, comptime cols:
 
             if (explored_nodes.contains(new_pos) or (matrix[new_row][new_col] == '#')) continue;
 
-            // std.debug.print("TRYING CAST {d} - {d}\n", .{ new_pos[0], min_key[0] });
+            // print("TRYING CAST {d} - {d}\n", .{ new_pos[0], min_key[0] });
             const dif_row: i16 = @intCast(dir[0] - row_int);
-            // std.debug.print("TRYING CAST {d} - {d}\n", .{ new_pos[1], min_key[1] });
+            // print("TRYING CAST {d} - {d}\n", .{ new_pos[1], min_key[1] });
             const dif_col: i16 = @intCast(dir[1] - col_int);
             const new_facing = [2]i16{ dif_row, dif_col };
 
             const g: usize = current_node.g + try calcDistance(min_key, new_pos, current_node.facing);
             const h: usize = try calcDistance(new_pos, end, null);
             const f: usize = g + h;
-            // std.debug.print("DIST G from {any} to {any} + {d}, total: {d}\n", .{ min_key, new_pos, current_node.g, g });
-            // std.debug.print("DIST H from {any} to {any}, total: {d}\n", .{ new_pos, end, h });
+            // print("DIST G from {any} to {any} + {d}, total: {d}\n", .{ min_key, new_pos, current_node.g, g });
+            // print("DIST H from {any} to {any}, total: {d}\n", .{ new_pos, end, h });
 
             if (unexplored_nodes.contains(new_pos)) {
                 if (g >= unexplored_nodes.get(new_pos).?.g) continue;
@@ -295,15 +296,15 @@ test "sample" {
     var result_path = (try aStarAlgo(allocator, rows, cols, &matrix, start_pos, end_pos, start_facing)).?;
 
     printMap(matrix);
-    std.debug.print("\n\n\n", .{});
+    print("\n\n\n", .{});
     for (result_path.items) |node| {
-        // std.debug.print("Crossing {any}", .{node});
+        // print("Crossing {any}", .{node});
         matrix[node.pos[0]][node.pos[1]] = 'O';
-        // std.debug.print(" - Done!\n", .{});
+        // print(" - Done!\n", .{});
     }
     printMap(matrix);
     const cost = result_path.items[0].f;
-    std.debug.print("Total Cost is {d}\n", .{cost});
+    print("Total Cost is {d}\n", .{cost});
     try testing.expect(cost == 7036);
     result_path.deinit(allocator);
 }
@@ -351,11 +352,11 @@ test "sample2" {
 
     const best_nodes = try getAllBestNodes(allocator, rows, cols, &matrix, end_pos, cost, result_path);
 
-    // std.debug.print("Crossing {any}", .{node});
+    // print("Crossing {any}", .{node});
     for (best_nodes.items) |best| {
         matrix[best[0]][best[1]] = 'O';
     }
-    std.debug.print("\n\n\n", .{});
+    print("\n\n\n", .{});
 
     var res2: usize = 0;
     for (matrix) |row| {
@@ -365,7 +366,7 @@ test "sample2" {
     }
     printMap(matrix);
 
-    std.debug.print("Result2 {d}\n", .{res2});
+    print("Result2 {d}\n", .{res2});
     try testing.expect(res2 == 45);
 }
 
@@ -414,11 +415,11 @@ test "sample2_2" {
 
     const best_nodes = try getAllBestNodes(allocator, rows, cols, &matrix, end_pos, cost, result_path);
 
-    // std.debug.print("Crossing {any}", .{node});
+    // print("Crossing {any}", .{node});
     for (best_nodes.items) |best| {
         matrix[best[0]][best[1]] = 'O';
     }
-    std.debug.print("\n\n\n", .{});
+    print("\n\n\n", .{});
 
     var res2: usize = 0;
     for (matrix) |row| {
@@ -428,6 +429,6 @@ test "sample2_2" {
     }
     printMap(matrix);
 
-    std.debug.print("Result2 {d}\n", .{res2});
+    print("Result2 {d}\n", .{res2});
     try testing.expect(res2 == 64);
 }

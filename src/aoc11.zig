@@ -1,9 +1,10 @@
 const std = @import("std");
 const testing = std.testing;
+const print = std.debug.print;
 
 const raw = @embedFile("inputs/input11.txt");
 
-pub fn load_stones(allocator: std.mem.Allocator, map: *std.AutoHashMapUnmanaged(u64, u64), string: []const u8) !void {
+pub fn loadStones(allocator: std.mem.Allocator, map: *std.AutoHashMapUnmanaged(u64, u64), string: []const u8) !void {
     var iterator = std.mem.splitScalar(u8, string, ' ');
     while (iterator.next()) |num| {
         const nump: u64 = try std.fmt.parseInt(u64, std.mem.trimRight(u8, num, "\n"), 10);
@@ -48,7 +49,7 @@ pub fn blink(allocator: std.mem.Allocator, stones: *std.AutoHashMapUnmanaged(u64
 }
 
 pub fn main() !void {
-    var gpa = std.heap.DebugAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}).init;
     const allocator = gpa.allocator();
 
     const n1 = 25;
@@ -57,33 +58,33 @@ pub fn main() !void {
     var stones: std.AutoHashMapUnmanaged(u64, u64) = .empty;
     defer stones.deinit(allocator);
 
-    try load_stones(allocator, &stones, raw);
+    try loadStones(allocator, &stones, raw);
 
     var res: u64 = 0;
-    for (0..n1) |i| {
-        std.debug.print("I: {d}\n", .{i + 1});
+    for (0..n1) |_| {
+        // print("I: {d}\n", .{i + 1});
         try blink(allocator, &stones);
     }
     var iterator = stones.iterator();
     while (iterator.next()) |entry| {
         res += entry.value_ptr.*;
     }
-    std.debug.print("RES: {d}\n", .{res});
+    print("Result: {d}\n", .{res});
 
     var stones2: std.AutoHashMapUnmanaged(u64, u64) = .empty;
     defer stones2.deinit(allocator);
 
-    try load_stones(allocator, &stones2, raw);
+    try loadStones(allocator, &stones2, raw);
     var res2: u64 = 0;
-    for (0..n2) |i| {
-        std.debug.print("I: {d}\n", .{i + 1});
+    for (0..n2) |_| {
+        // print("I: {d}\n", .{i + 1});
         try blink(allocator, &stones2);
     }
     var iterator2 = stones2.iterator();
     while (iterator2.next()) |entry| {
         res2 += entry.value_ptr.*;
     }
-    std.debug.print("RES 2: {d}\n", .{res2});
+    print("Result 2: {d}\n", .{res2});
 }
 
 test "sample" {
@@ -95,21 +96,21 @@ test "sample" {
     var stones: std.AutoHashMapUnmanaged(u64, u64) = .empty;
     defer stones.deinit(allocator);
 
-    try load_stones(allocator, &stones, sample);
+    try loadStones(allocator, &stones, sample);
 
     for (0..n) |_| {
-        // std.debug.print("ITERATION: {d}\n", .{i + 1});
+        // print("ITERATION: {d}\n", .{i + 1});
         try blink(allocator, &stones);
         // var iterator = stones.iterator();
         // while (iterator.next()) |entry| {
         //     if (entry.value_ptr.* == 0) continue;
-        //     std.debug.print("MAP: {d}, {d}\n", .{ entry.key_ptr.*, entry.value_ptr.* });
+        //     print("MAP: {d}, {d}\n", .{ entry.key_ptr.*, entry.value_ptr.* });
         // }
     }
     var res: u64 = 0;
     var iterator = stones.iterator();
     while (iterator.next()) |entry| {
-        // std.debug.print("MAP: {d} {d}\n", .{ entry.key_ptr.*, entry.value_ptr.* });
+        // print("MAP: {d} {d}\n", .{ entry.key_ptr.*, entry.value_ptr.* });
         res += entry.value_ptr.*;
     }
     try testing.expect(res == 22);

@@ -1,5 +1,6 @@
 const std = @import("std");
 const testing = std.testing;
+const print = std.debug.print;
 
 const raw = @embedFile("inputs/input14.txt");
 
@@ -7,62 +8,65 @@ pub fn main() !void {
     var gpa: std.heap.DebugAllocator(.{}) = .init;
     const allocator = gpa.allocator();
 
-    const dim_x = 101;
-    const dim_y = 103;
+    const cols = 101;
+    const rows = 103;
 
     var robots: std.ArrayListUnmanaged([4]i32) = .empty;
     defer robots.deinit(allocator);
     try parseRobots(allocator, raw, &robots);
 
-    var matrix: [dim_y][dim_x]i32 = @splat([_]i32{0} ** dim_x);
+    var matrix: [rows][cols]i32 = @splat([_]i32{0} ** cols);
     for (robots.items) |item| {
         const pos_x: usize = @intCast(item[0]);
         const pos_y: usize = @intCast(item[1]);
         matrix[pos_y][pos_x] += 1;
     }
 
-    const stdin = std.io.getStdIn();
     // hojas 25, tronco 62
     var res: i32 = undefined;
 
     // const start: usize = 1530;
     // for (0..start) |_| {
-    //     waitSecond(dim_x, dim_y, &matrix, robots.items);
+    //     waitSecond(cols, rows, &matrix, robots.items);
     // }
 
     var i: usize = 1;
     while (true) : (i += 1) {
-        waitSecond(dim_x, dim_y, &matrix, robots.items);
+        waitSecond(cols, rows, &matrix, robots.items);
         if (i == 100) {
-            res = countCuadrants(dim_x, dim_y, &matrix);
-            std.debug.print("RESULT: {d}\n", .{res});
+            res = countCuadrants(cols, rows, &matrix);
+            print("RESULT: {d}\n", .{res});
         }
 
-        const to_check: bool = checkForTree(dim_x, dim_y, &matrix, 20);
+        // This means that probabbly the tree is there:
+        const to_check: bool = checkForTree(cols, rows, &matrix, 20);
 
         if (to_check) {
-            std.debug.print("x1B[2J\x1B[H", .{});
-            std.debug.print("\nSTART ITERATION - {d}\n", .{i});
-            for (matrix) |row| {
-                for (row) |cell| {
-                    if (cell == 0) {
-                        std.debug.print(" ", .{});
-                    } else {
-                        std.debug.print("{d}", .{cell});
-                    }
-                }
-                std.debug.print("\n", .{});
-            }
-            std.debug.print("\nEND ITERATION - {d}\n", .{i});
+            print("x1B[2J\x1B[H", .{});
+            print("\nResult 2: {d}\n", .{i});
+            //// These lines below plot the tree
+            // for (matrix) |row| {
+            //     for (row) |cell| {
+            //         if (cell == 0) {
+            //             print(" ", .{});
+            //         } else {
+            //             print("{d}", .{cell});
+            //         }
+            //     }
+            //     print("\n", .{});
+            // }
+            // print("\nEND ITERATION - {d}\n", .{i});
 
-            var buffer = [_]u8{ 0, 0 };
-            _ = try stdin.reader().readUntilDelimiter(&buffer, '\n');
+            // const stdin = std.io.getStdIn();
+            // var buffer = [_]u8{ 0, 0 };
+            // _ = try stdin.reader().readUntilDelimiter(&buffer, '\n');
             // std.time.sleep(1000 * 1000 * 500);
+            break;
         }
     }
 }
 
-pub fn checkForTree(comptime dim_x: usize, comptime dim_y: usize, matrix: *[dim_y][dim_x]i32, thresh: u8) bool {
+pub fn checkForTree(comptime cols: usize, comptime rows: usize, matrix: *[rows][cols]i32, thresh: u8) bool {
     for (matrix) |row| {
         var accum: u8 = 0;
         for (row) |cell| {
@@ -98,20 +102,20 @@ pub fn parseRobots(allocator: std.mem.Allocator, string: []const u8, array: *std
     }
 }
 
-pub fn waitSecond(comptime dim_x: usize, comptime dim_y: usize, matrix: *[dim_y][dim_x]i32, robots: [][4]i32) void {
+pub fn waitSecond(comptime cols: usize, comptime rows: usize, matrix: *[rows][cols]i32, robots: [][4]i32) void {
     for (robots) |*item| {
-        const dim_x_i: i32 = @intCast(dim_x);
-        const dim_y_i: i32 = @intCast(dim_y);
+        const cols_i: i32 = @intCast(cols);
+        const rows_i: i32 = @intCast(rows);
 
         const pos_x: usize = @intCast(item[0]);
         const pos_y: usize = @intCast(item[1]);
 
         var new_x_int = item[0] + item[2];
-        if (new_x_int < 0) new_x_int += dim_x_i;
-        if (new_x_int >= dim_x_i) new_x_int -= dim_x_i;
+        if (new_x_int < 0) new_x_int += cols_i;
+        if (new_x_int >= cols_i) new_x_int -= cols_i;
         var new_y_int = item[1] + item[3];
-        if (new_y_int < 0) new_y_int += dim_y_i;
-        if (new_y_int >= dim_y_i) new_y_int -= dim_y_i;
+        if (new_y_int < 0) new_y_int += rows_i;
+        if (new_y_int >= rows_i) new_y_int -= rows_i;
 
         const new_x: usize = @intCast(new_x_int);
         const new_y: usize = @intCast(new_y_int);
@@ -124,9 +128,9 @@ pub fn waitSecond(comptime dim_x: usize, comptime dim_y: usize, matrix: *[dim_y]
     }
 }
 
-pub fn countCuadrants(comptime dim_x: usize, comptime dim_y: usize, matrix: *[dim_y][dim_x]i32) i32 {
-    const mid_x: usize = dim_x / 2 + 1;
-    const mid_y: usize = dim_y / 2 + 1;
+pub fn countCuadrants(comptime cols: usize, comptime rows: usize, matrix: *[rows][cols]i32) i32 {
+    const mid_x: usize = cols / 2 + 1;
+    const mid_y: usize = rows / 2 + 1;
 
     var cuadrants: [4]i32 = @splat(0);
     var robots: i32 = 0;
@@ -139,9 +143,9 @@ pub fn countCuadrants(comptime dim_x: usize, comptime dim_y: usize, matrix: *[di
             if ((x > mid_x) and (y > mid_y)) cuadrants[3] += cell;
         }
     }
-    // std.debug.print("CUADRANTS: {any}\n", .{cuadrants});
-    // std.debug.print("ROBOTS: {d}\n", .{robots});
-    // std.debug.print("IN CUAD: {d}\n", .{cuadrants[0] + cuadrants[1] + cuadrants[2] + cuadrants[3]});
+    // print("CUADRANTS: {any}\n", .{cuadrants});
+    // print("ROBOTS: {d}\n", .{robots});
+    // print("IN CUAD: {d}\n", .{cuadrants[0] + cuadrants[1] + cuadrants[2] + cuadrants[3]});
 
     const total: i32 = cuadrants[0] * cuadrants[1] * cuadrants[2] * cuadrants[3];
     return total;
@@ -150,8 +154,8 @@ pub fn countCuadrants(comptime dim_x: usize, comptime dim_y: usize, matrix: *[di
 test "sample" {
     const allocator = testing.allocator;
 
-    const dim_x = 11;
-    const dim_y = 7;
+    const cols = 11;
+    const rows = 7;
 
     const sample =
         \\p=0,4 v=3,-3
@@ -172,43 +176,43 @@ test "sample" {
     defer robots.deinit(allocator);
     try parseRobots(allocator, sample, &robots);
     // for (robots.items) |item| {
-    //     std.debug.print("{any}\n", .{item});
+    //     print("{any}\n", .{item});
     // }
 
-    var matrix: [dim_y][dim_x]i32 = @splat([_]i32{0} ** dim_x);
+    var matrix: [rows][cols]i32 = @splat([_]i32{0} ** cols);
     for (robots.items) |item| {
         const pos_x: usize = @intCast(item[0]);
         const pos_y: usize = @intCast(item[1]);
         matrix[pos_y][pos_x] += 1;
     }
 
-    std.debug.print("\nSTART\n", .{});
+    print("\nSTART\n", .{});
     for (matrix) |row| {
         for (row) |cell| {
             if (cell == 0) {
-                std.debug.print(".", .{});
+                print(".", .{});
             } else {
-                std.debug.print("{d}", .{cell});
+                print("{d}", .{cell});
             }
         }
-        std.debug.print("\n", .{});
+        print("\n", .{});
     }
 
     for (0..100) |_| {
-        waitSecond(dim_x, dim_y, &matrix, robots.items);
+        waitSecond(cols, rows, &matrix, robots.items);
     }
-    std.debug.print("\nEND\n", .{});
+    print("\nEND\n", .{});
     for (matrix) |row| {
         for (row) |cell| {
             if (cell == 0) {
-                std.debug.print(".", .{});
+                print(".", .{});
             } else {
-                std.debug.print("{d}", .{cell});
+                print("{d}", .{cell});
             }
         }
-        std.debug.print("\n", .{});
+        print("\n", .{});
     }
 
-    const res = countCuadrants(dim_x, dim_y, &matrix);
+    const res = countCuadrants(cols, rows, &matrix);
     try testing.expect(res == 12);
 }

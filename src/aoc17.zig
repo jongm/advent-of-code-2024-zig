@@ -1,56 +1,8 @@
 const std = @import("std");
 const testing = std.testing;
+const print = std.debug.print;
 
 const raw = @embedFile("inputs/input17.txt");
-
-pub fn main() !void {
-    var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
-    const allocator = debug_allocator.allocator();
-
-    var buffer: [16]u8 = undefined;
-    var b_len: usize = 0;
-
-    var registers = [3]u64{ 0, 0, 0 };
-
-    var iterator = std.mem.splitSequence(u8, raw, "\n");
-
-    for ([3][]const u8{ "A: ", "B: ", "C: " }, 0..) |letter, i| {
-        const row = iterator.next().?;
-        var letter_iter = std.mem.splitSequence(u8, row, letter);
-        _ = letter_iter.next().?;
-        registers[i] = try std.fmt.parseInt(u64, letter_iter.next().?, 10);
-    }
-    _ = iterator.next().?;
-    const row_program = iterator.next().?;
-    const start_index = std.mem.indexOf(u8, row_program, ":").?;
-    const program = std.mem.trim(u8, row_program[start_index + 1 ..], " \n");
-
-    // std.debug.print("REGISTERS: {any}\n", .{registers});
-    // std.debug.print("PROGRAM: {any}\n", .{program});
-
-    const instructions = try parseProgram(allocator, program);
-    std.debug.print("Instructions: {any} \n", .{instructions});
-    defer allocator.free(instructions);
-    // registers[0] = 236539226447469;
-    runProgram(instructions, &registers, &buffer, &b_len);
-    std.debug.print("Result: {any} \n", .{buffer[0..b_len]});
-
-    // Part 2
-    const matched = try allocator.alloc(u8, instructions.len);
-    for (matched, 0..) |_, i| {
-        matched[i] = 0;
-    }
-    defer allocator.free(matched);
-    var results_list: std.ArrayListUnmanaged(u64) = .empty;
-    defer results_list.deinit(allocator);
-    try findNext(allocator, 0, instructions, matched, &results_list);
-
-    var res2: u64 = results_list.items[0];
-    for (results_list.items) |item| {
-        if (item < res2) res2 = item;
-    }
-    std.debug.print("Result 2: {d}", .{res2});
-}
 
 pub fn findNext(allocator: std.mem.Allocator, pos: usize, inst: []u8, matched: []u8, results: *std.ArrayListUnmanaged(u64)) !void {
     var current_a: u64 = 0;
@@ -60,7 +12,7 @@ pub fn findNext(allocator: std.mem.Allocator, pos: usize, inst: []u8, matched: [
 
     for (0..pos + 1) |pow| {
         current_a += matched[pow] * std.math.pow(u64, 8, pos - pow);
-        //std.debug.print("POWERING: POS {d}, POW {d}, MATCHED {any}, CALC {d}\n", .{ pos, pow, matched, current_a });
+        //print("POWERING: POS {d}, POW {d}, MATCHED {any}, CALC {d}\n", .{ pos, pow, matched, current_a });
     }
     for (0..8) |n| {
         const check_a = current_a + n;
@@ -71,11 +23,11 @@ pub fn findNext(allocator: std.mem.Allocator, pos: usize, inst: []u8, matched: [
             a_buffer[i] = val;
         }
         runProgram(inst, &registers, &result_buffer, &b_len);
-        // std.debug.print("Checking: CURRENT: {d} CHECKA: {d} BUFFER: {any} INST: {any}\n", .{ current_a, check_a, result_buffer[0 .. pos + 1], inst[len - pos ..] });
+        // print("Checking: CURRENT: {d} CHECKA: {d} BUFFER: {any} INST: {any}\n", .{ current_a, check_a, result_buffer[0 .. pos + 1], inst[len - pos ..] });
         if (std.mem.eql(u8, result_buffer[0 .. pos + 1], inst[len - pos ..])) {
-            //            std.debug.print("POS {d}, CURRENTA {d}, CHECKA {d}, BUFFER {any}\n", .{ pos, current_a, check_a, result_buffer[0 .. pos + 1] });
+            //            print("POS {d}, CURRENTA {d}, CHECKA {d}, BUFFER {any}\n", .{ pos, current_a, check_a, result_buffer[0 .. pos + 1] });
             if (pos == len) {
-                std.debug.print("REACHED {d} WITH A {d} BUFFER {any}\n", .{ len, check_a, result_buffer[len - pos ..] });
+                // print("REACHED {d} WITH A {d} BUFFER {any}\n", .{ len, check_a, result_buffer[len - pos ..] });
                 try results.append(allocator, check_a);
                 return;
             }
@@ -196,6 +148,55 @@ pub fn runProgram(instructions: []u8, registers: *[3]u64, buffer: []u8, len: *us
     }
 }
 
+pub fn main() !void {
+    var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
+    const allocator = debug_allocator.allocator();
+
+    var buffer: [16]u8 = undefined;
+    var b_len: usize = 0;
+
+    var registers = [3]u64{ 0, 0, 0 };
+
+    var iterator = std.mem.splitSequence(u8, raw, "\n");
+
+    for ([3][]const u8{ "A: ", "B: ", "C: " }, 0..) |letter, i| {
+        const row = iterator.next().?;
+        var letter_iter = std.mem.splitSequence(u8, row, letter);
+        _ = letter_iter.next().?;
+        registers[i] = try std.fmt.parseInt(u64, letter_iter.next().?, 10);
+    }
+    _ = iterator.next().?;
+    const row_program = iterator.next().?;
+    const start_index = std.mem.indexOf(u8, row_program, ":").?;
+    const program = std.mem.trim(u8, row_program[start_index + 1 ..], " \n");
+
+    // print("REGISTERS: {any}\n", .{registers});
+    // print("PROGRAM: {any}\n", .{program});
+
+    const instructions = try parseProgram(allocator, program);
+    print("Instructions: {any} \n", .{instructions});
+    defer allocator.free(instructions);
+    // registers[0] = 236539226447469;
+    runProgram(instructions, &registers, &buffer, &b_len);
+    print("Result: {any} \n", .{buffer[0..b_len]});
+
+    // Part 2
+    const matched = try allocator.alloc(u8, instructions.len);
+    for (matched, 0..) |_, i| {
+        matched[i] = 0;
+    }
+    defer allocator.free(matched);
+    var results_list: std.ArrayListUnmanaged(u64) = .empty;
+    defer results_list.deinit(allocator);
+    try findNext(allocator, 0, instructions, matched, &results_list);
+
+    var res2: u64 = results_list.items[0];
+    for (results_list.items) |item| {
+        if (item < res2) res2 = item;
+    }
+    print("Result 2: {d}", .{res2});
+}
+
 test "sample" {
     var allocator = testing.allocator;
 
@@ -210,7 +211,7 @@ test "sample" {
 
     runProgram(instructions, &registers, &buffer, &b_len);
 
-    std.debug.print("Sample Output: {any}\n", .{buffer[0..b_len]});
+    print("Sample Output: {any}\n", .{buffer[0..b_len]});
     try testing.expect(std.mem.eql(u8, buffer[0..b_len], &result));
 }
 
@@ -229,6 +230,6 @@ test "sample2" {
 
     runProgram(instructions, &registers, &buffer, &b_len);
 
-    std.debug.print("Sample Output 2: {any}\n", .{buffer[0..b_len]});
+    print("Sample Output 2: {any}\n", .{buffer[0..b_len]});
     try testing.expect(std.mem.eql(u8, buffer[0..b_len], &result));
 }

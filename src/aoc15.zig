@@ -1,81 +1,8 @@
 const std = @import("std");
 const testing = std.testing;
+const print = std.debug.print;
 
 const raw = @embedFile("inputs/input15.txt");
-
-pub fn main() void {
-    const rows = 50;
-    const cols = 50;
-
-    var gpa = std.heap.DebugAllocator(.{}).init;
-    const allocator = gpa.allocator();
-    var queue: std.ArrayListUnmanaged(?[5]usize) = .empty;
-    defer queue.deinit(allocator);
-
-    var matrix: [rows][cols]u8 = undefined;
-
-    var iterator = std.mem.splitSequence(u8, raw, "\n\n");
-    parseMap(iterator.next().?, rows, cols, &matrix);
-    printMap(matrix);
-
-    const robot_index = std.mem.indexOf(u8, raw, "@").?;
-    const init_row: usize = robot_index / (cols + 1);
-    const init_col: usize = robot_index % (cols + 1);
-
-    var position = [2]usize{ init_row, init_col };
-    // std.debug.print("Index {d} Char at {d},{d} is {c}\n", .{ robot_index, init_row, init_col, matrix[init_row][init_col] });
-
-    for (iterator.next().?) |inst| {
-        if (inst == '\n') continue;
-        queue.clearAndFree(allocator);
-        const new_position = try findNextPosition(allocator, queue, rows, cols, &matrix, position, inst, 1);
-        if (new_position != null) {
-            moveObject(rows, cols, &matrix, queue);
-            position = new_position.?;
-            // std.debug.print("Char at {d},{d} is {c}\n", .{ new_position.?[0], new_position.?[1], matrix_wide[new_position.?[0]][new_position.?[1]] });
-        }
-        // printMap(matrix);
-    }
-    printMap(matrix);
-
-    const res = countBoxes(&matrix);
-    std.debug.print("RESULT: {d}\n", .{res});
-
-    // SECOND PART
-    std.debug.print("SECOND PART \n\n\n", .{});
-
-    iterator.reset();
-
-    parseMap(iterator.next().?, rows, cols, &matrix);
-    printMap(matrix);
-
-    var matrix_wide: [rows][cols * 2]u8 = undefined;
-    doubleWideMap(rows, cols, &matrix, &matrix_wide);
-    printMap(matrix_wide);
-
-    const init_row2: usize = robot_index / (cols + 1);
-    const init_col2: usize = (robot_index % (cols + 1)) * 2;
-
-    position = [2]usize{ init_row2, init_col2 };
-
-    for (iterator.next().?) |inst| {
-        if (inst == '\n') continue;
-        queue.clearAndFree(allocator);
-        // std.debug.print("\x1B[2J\x1B[H\n", .{});
-        const new_position = try findNextPosition(allocator, queue, rows, cols * 2, &matrix_wide, inst, 1);
-        if (new_position != null) {
-            moveObject(rows, cols * 2, &matrix_wide, queue);
-            position = new_position.?;
-            // std.debug.print("Char at {d},{d} is {c}\n", .{ new_position.?[0], new_position.?[1], matrix_wide[new_position.?[0]][new_position.?[1]] });
-        }
-        // printMap(matrix_wide);
-        // std.time.sleep(1000 * 1000 * 500);
-    }
-    printMap(matrix_wide);
-
-    const res2 = countBoxes(&matrix_wide);
-    std.debug.print("RESULT 2: {d}\n", .{res2});
-}
 
 pub fn parseMap(string: []const u8, comptime rows: u8, comptime cols: u8, matrix: *[rows][cols]u8) void {
     var iterator = std.mem.splitScalar(u8, string, '\n');
@@ -200,7 +127,7 @@ pub fn moveObject(comptime rows: u8, comptime cols: u8, matrix: *[rows][cols]u8,
                 }
                 matrix.*[move.?[0]][move.?[1]] = '.';
                 matrix.*[move.?[2]][move.?[3]] = current_cell;
-                // std.debug.print("\n Move ({c}) from ({d},{d}) to ({d},{d}) with depth {d}\n", .{ current_cell, move.?[0], move.?[1], move.?[2], move.?[3], max_depth });
+                // print("\n Move ({c}) from ({d},{d}) to ({d},{d}) with depth {d}\n", .{ current_cell, move.?[0], move.?[1], move.?[2], move.?[3], max_depth });
             }
         }
     }
@@ -209,11 +136,11 @@ pub fn moveObject(comptime rows: u8, comptime cols: u8, matrix: *[rows][cols]u8,
 pub fn printMap(matrix: anytype) void {
     for (matrix) |row| {
         for (row) |cell| {
-            std.debug.print("{c}", .{cell});
+            print("{c}", .{cell});
         }
-        std.debug.print("\n", .{});
+        print("\n", .{});
     }
-    std.debug.print("\n", .{});
+    print("\n", .{});
 }
 
 pub fn countBoxes(matrix: anytype) usize {
@@ -244,80 +171,155 @@ pub fn doubleWideMap(comptime rows: u8, comptime cols: u8, original: *[rows][col
     }
 }
 
-test "sample" {
-    const sample =
-        \\##########
-        \\#..O..O.O#
-        \\#......O.#
-        \\#.OO..O.O#
-        \\#..O@..O.#
-        \\#O#..O...#
-        \\#O..O..O.#
-        \\#.OO.O.OO#
-        \\#....O...#
-        \\##########
-    ;
-    // const moves =
-    //     \\<vv>^<v^>v>^vv^v>v<>v^v<v<^vv<<<^><<><>>v<vvv<>^v^>^<<<><<v<<<v^vv^v>^
-    //     \\vvv<<^>^v^^><<>>><>^<<><^vv^^<>vvv<>><^^v>^>vv<>v<<<<v<^v>^<^^>>>^<v<v
-    //     \\><>vv>v^v^<>><>>>><^^>vv>v<^^^>>v^v^<^^>v^^>v^<^v>v<>>v^v^<v>v^^<^^vv<
-    //     \\<<v<^>>^^^^>>>v^<>vvv^><v<<<>^^^vv^<vvv>^>v<^^^^v<>^>vvvv><>>v^<<^^^^^
-    //     \\^><^><>>><>^^<<^^v>>><^<v>^<vv>>v>>>^v><>^v><<<<v>>v<v<v>vvv>^<><<>^><
-    //     \\^>><>^v<><^vvv<^^<><v<<<<<><^v<<<><<<^^<v<^^^><^>>^<v^><<<^>>^v<v^v<v^
-    //     \\>^>>^v>vv>^<<^v<>><<><<v<<v><>v<^vv<<<>^^v^>^^>>><<^v>>v^v><^^>>^<>vv^
-    //     \\<><^^>^^^<><vvvvv^v<v<<>^v<v>v<<^><<><<><<<^^<<<^<<>><<><^^^>^^<>^>v<>
-    //     \\^^>vv<^v^v<vv>^<><v<^v>^^^>>>^^vvv^>vvv<>>>^<^>>>>>^<<^v>^vvv<>^<><<v>
-    //     \\v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^
-    // ;
-    // _ = moves;
-    const allocator = testing.allocator;
+pub fn main() !void {
+    const rows = 50;
+    const cols = 50;
+
+    var gpa = std.heap.DebugAllocator(.{}).init;
+    const allocator = gpa.allocator();
     var queue: std.ArrayListUnmanaged(?[5]usize) = .empty;
     defer queue.deinit(allocator);
-    const rows = 10;
-    const cols = 10;
 
     var matrix: [rows][cols]u8 = undefined;
 
-    parseMap(sample, rows, cols, &matrix);
-    printMap(matrix);
+    var iterator = std.mem.splitSequence(u8, raw, "\n\n");
+    parseMap(iterator.next().?, rows, cols, &matrix);
+    // printMap(matrix);
 
-    const robot_index = std.mem.indexOf(u8, sample, "@").?;
+    const robot_index = std.mem.indexOf(u8, raw, "@").?;
     const init_row: usize = robot_index / (cols + 1);
     const init_col: usize = robot_index % (cols + 1);
 
     var position = [2]usize{ init_row, init_col };
-    // std.debug.print("Index {d} Char at {d},{d} is {c}\n", .{ robot_index, init_row, init_col, matrix[init_row][init_col] });
-    // const stdin = std.io.getStdIn();
+    // print("Index {d} Char at {d},{d} is {c}\n", .{ robot_index, init_row, init_col, matrix[init_row][init_col] });
 
-    // for (moves) |inst| {
-    // if (inst == '\n') continue;
-    const stdin = std.io.getStdIn();
-    var buffer = [_]u8{ 0, 0 };
-    while (true) {
+    for (iterator.next().?) |inst| {
+        if (inst == '\n') continue;
         queue.clearAndFree(allocator);
-        _ = try stdin.reader().readUntilDelimiter(&buffer, '\n');
-        std.debug.print("\x1B[2J\x1B[H\n", .{});
-        // std.debug.print("\n Buffer: {any}\n", .{buffer});
-        const inst = buffer[0];
-
         const new_position = try findNextPosition(allocator, &queue, rows, cols, &matrix, position, inst, 1);
         if (new_position != null) {
             moveObject(rows, cols, &matrix, queue);
             position = new_position.?;
-            // std.debug.print("Char at {d},{d} is {c}\n", .{ new_position.?[0], new_position.?[1], matrix_wide[new_position.?[0]][new_position.?[1]] });
+            // print("Char at {d},{d} is {c}\n", .{ new_position.?[0], new_position.?[1], matrix_wide[new_position.?[0]][new_position.?[1]] });
         }
-        printMap(matrix);
+        // printMap(matrix);
     }
-    // std.debug.print("\x1B[2J\x1B[H", .{});
-    printMap(matrix);
-    // var buffer = [_]u8{ 0, 0 };
-    // _ = try stdin.reader().readUntilDelimiter(&buffer, '\n');
+    // printMap(matrix);
 
     const res = countBoxes(&matrix);
-    std.debug.print("\n SAMPLE: {d}\n", .{res});
+    print("RESULT: {d}\n", .{res});
 
-    try testing.expect(res == 10092);
+    // SECOND PART
+    print("SECOND PART \n\n\n", .{});
+
+    iterator.reset();
+
+    parseMap(iterator.next().?, rows, cols, &matrix);
+    // printMap(matrix);
+
+    var matrix_wide: [rows][cols * 2]u8 = undefined;
+    doubleWideMap(rows, cols, &matrix, &matrix_wide);
+    // printMap(matrix_wide);
+
+    const init_row2: usize = robot_index / (cols + 1);
+    const init_col2: usize = (robot_index % (cols + 1)) * 2;
+
+    position = [2]usize{ init_row2, init_col2 };
+
+    for (iterator.next().?) |inst| {
+        if (inst == '\n') continue;
+        queue.clearAndFree(allocator);
+        // print("\x1B[2J\x1B[H\n", .{});
+        const new_position = try findNextPosition(allocator, &queue, rows, cols * 2, &matrix_wide, position, inst, 1);
+        if (new_position != null) {
+            moveObject(rows, cols * 2, &matrix_wide, queue);
+            position = new_position.?;
+            // print("Char at {d},{d} is {c}\n", .{ new_position.?[0], new_position.?[1], matrix_wide[new_position.?[0]][new_position.?[1]] });
+        }
+        // printMap(matrix_wide);
+        // std.time.sleep(1000 * 1000 * 500);
+    }
+    // printMap(matrix_wide);
+
+    const res2 = countBoxes(&matrix_wide);
+    print("RESULT 2: {d}\n", .{res2});
 }
+
+// test "sample" { // THIS TEST IS INTERACTIVE
+//     print("\n\nThis test is interactive! Input Direction (v > < ^) and press Enter\n\n", .{});
+//     const sample =
+//         \\##########
+//         \\#..O..O.O#
+//         \\#......O.#
+//         \\#.OO..O.O#
+//         \\#..O@..O.#
+//         \\#O#..O...#
+//         \\#O..O..O.#
+//         \\#.OO.O.OO#
+//         \\#....O...#
+//         \\##########
+//     ;
+//     // const moves =
+//     //     \\<vv>^<v^>v>^vv^v>v<>v^v<v<^vv<<<^><<><>>v<vvv<>^v^>^<<<><<v<<<v^vv^v>^
+//     //     \\vvv<<^>^v^^><<>>><>^<<><^vv^^<>vvv<>><^^v>^>vv<>v<<<<v<^v>^<^^>>>^<v<v
+//     //     \\><>vv>v^v^<>><>>>><^^>vv>v<^^^>>v^v^<^^>v^^>v^<^v>v<>>v^v^<v>v^^<^^vv<
+//     //     \\<<v<^>>^^^^>>>v^<>vvv^><v<<<>^^^vv^<vvv>^>v<^^^^v<>^>vvvv><>>v^<<^^^^^
+//     //     \\^><^><>>><>^^<<^^v>>><^<v>^<vv>>v>>>^v><>^v><<<<v>>v<v<v>vvv>^<><<>^><
+//     //     \\^>><>^v<><^vvv<^^<><v<<<<<><^v<<<><<<^^<v<^^^><^>>^<v^><<<^>>^v<v^v<v^
+//     //     \\>^>>^v>vv>^<<^v<>><<><<v<<v><>v<^vv<<<>^^v^>^^>>><<^v>>v^v><^^>>^<>vv^
+//     //     \\<><^^>^^^<><vvvvv^v<v<<>^v<v>v<<^><<><<><<<^^<<<^<<>><<><^^^>^^<>^>v<>
+//     //     \\^^>vv<^v^v<vv>^<><v<^v>^^^>>>^^vvv^>vvv<>>>^<^>>>>>^<<^v>^vvv<>^<><<v>
+//     //     \\v^^>>><<^^<>>^v^<v^vv<>v^<<>^<^v^v><^<<<><<^<v><v<>vv>>v><v^<vv<>v^<<^
+//     // ;
+//     // _ = moves;
+//     const allocator = testing.allocator;
+//     var queue: std.ArrayListUnmanaged(?[5]usize) = .empty;
+//     defer queue.deinit(allocator);
+//     const rows = 10;
+//     const cols = 10;
+//
+//     var matrix: [rows][cols]u8 = undefined;
+//
+//     parseMap(sample, rows, cols, &matrix);
+//     printMap(matrix);
+//
+//     const robot_index = std.mem.indexOf(u8, sample, "@").?;
+//     const init_row: usize = robot_index / (cols + 1);
+//     const init_col: usize = robot_index % (cols + 1);
+//
+//     var position = [2]usize{ init_row, init_col };
+//     // print("Index {d} Char at {d},{d} is {c}\n", .{ robot_index, init_row, init_col, matrix[init_row][init_col] });
+//     // const stdin = std.io.getStdIn();
+//
+//     // for (moves) |inst| {
+//     // if (inst == '\n') continue;
+//     const stdin = std.io.getStdIn();
+//     var buffer = [_]u8{ 0, 0 };
+//     while (true) {
+//         queue.clearAndFree(allocator);
+//         _ = try stdin.reader().readUntilDelimiter(&buffer, '\n');
+//         print("\x1B[2J\x1B[H\n", .{});
+//         // print("\n Buffer: {any}\n", .{buffer});
+//         const inst = buffer[0];
+//
+//         const new_position = try findNextPosition(allocator, &queue, rows, cols, &matrix, position, inst, 1);
+//         if (new_position != null) {
+//             moveObject(rows, cols, &matrix, queue);
+//             position = new_position.?;
+//             // print("Char at {d},{d} is {c}\n", .{ new_position.?[0], new_position.?[1], matrix_wide[new_position.?[0]][new_position.?[1]] });
+//         }
+//         printMap(matrix);
+//     }
+//     // print("\x1B[2J\x1B[H", .{});
+//     printMap(matrix);
+//     // var buffer = [_]u8{ 0, 0 };
+//     // _ = try stdin.reader().readUntilDelimiter(&buffer, '\n');
+//
+//     const res = countBoxes(&matrix);
+//     print("\n SAMPLE: {d}\n", .{res});
+//
+//     try testing.expect(res == 10092);
+// }
 
 test "wide" {
     const sample =
@@ -372,7 +374,7 @@ test "wide" {
         // var buffer = [_]u8{ 0, 0 };
         // while (true) {
         // _ = try stdin.reader().readUntilDelimiter(&buffer, '\n');
-        // std.debug.print("\x1B[2J\x1B[H\n", .{});
+        // print("\x1B[2J\x1B[H\n", .{});
 
         // const inst = buffer[0];
         queue.clearAndFree(allocator);
@@ -386,7 +388,7 @@ test "wide" {
     printMap(matrix_wide);
 
     const res = countBoxes(&matrix_wide);
-    std.debug.print("\n SAMPLE WIDE: {d}\n", .{res});
+    print("\n SAMPLE WIDE: {d}\n", .{res});
     try testing.expect(res == 9021);
 }
 
@@ -426,22 +428,23 @@ test "wide2" {
     const robot_index = std.mem.indexOf(u8, sample, "@").?;
     const init_row: usize = robot_index / (cols + 1);
     const init_col: usize = (robot_index % (cols + 1)) * 2;
-    // std.debug.print("START {d} - {d},{d} is {c}\n", .{ robot_index, init_row, init_col, matrix_wide[init_row][init_col] });
+    // print("START {d} - {d},{d} is {c}\n", .{ robot_index, init_row, init_col, matrix_wide[init_row][init_col] });
 
     var position = [2]usize{ init_row, init_col };
     for (moves) |inst| {
         if (inst == '\n') continue;
-        // std.debug.print("\x1B[2J\x1B[H\n", .{});
-        const new_position = findNextPosition(rows, cols * 2, &matrix_wide, position[0], position[1], inst);
+        // print("\x1B[2J\x1B[H\n", .{});
+        queue.clearAndFree(allocator);
+        const new_position = try findNextPosition(allocator, &queue, rows, cols * 2, &matrix_wide, position, inst, 1);
         if (new_position != null) {
-            moveObject(rows, cols * 2, &matrix_wide, position[0], position[1], new_position.?);
+            moveObject(rows, cols * 2, &matrix_wide, queue);
             position = new_position.?;
         }
     }
     printMap(matrix_wide);
 
     const res = countBoxes(&matrix_wide);
-    std.debug.print("\n SAMPLE WIDE: {d}\n", .{res});
+    print("\n SAMPLE WIDE: {d}\n", .{res});
     try testing.expect(res == 2339);
 
     // // INTERACTIVE TEST
@@ -450,8 +453,8 @@ test "wide2" {
     // var i: u8 = 0;
     // while (true) : (i += 1) {
     //     _ = try stdin.reader().readUntilDelimiter(&buffer, '\n');
-    //     std.debug.print("\x1B[2J\x1B[H\n", .{});
-    //     std.debug.print("\n Buffer: {any}\n", .{buffer});
+    //     print("\x1B[2J\x1B[H\n", .{});
+    //     print("\n Buffer: {any}\n", .{buffer});
 
     //     const inst = buffer[0];
     //     queue.clearAndFree(allocator);
@@ -460,10 +463,10 @@ test "wide2" {
     //     if (new_position != null) {
     //         moveObject(rows, cols * 2, &matrix_wide, queue);
     //         position = new_position.?;
-    //         // std.debug.print("Char at {d},{d} is {c}\n", .{ new_position.?[0], new_position.?[1], matrix_wide[new_position.?[0]][new_position.?[1]] });
+    //         // print("Char at {d},{d} is {c}\n", .{ new_position.?[0], new_position.?[1], matrix_wide[new_position.?[0]][new_position.?[1]] });
     //     }
 
     //     printMap(matrix_wide);
-    //     std.debug.print("\n Instruction: {c}\n", .{inst});
+    //     print("\n Instruction: {c}\n", .{inst});
     // }
 }

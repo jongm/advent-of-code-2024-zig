@@ -1,10 +1,11 @@
 const std = @import("std");
 const testing = std.testing;
+const print = std.debug.print;
 
-const raw = @embedFile("inputs/input9.txt");
+const raw = @embedFile("inputs/input09.txt");
 
 pub fn main() !void {
-    var gpa = std.heap.DebugAllocator(.{}){};
+    var gpa = std.heap.DebugAllocator(.{}).init;
     const allocator = gpa.allocator();
 
     var length: u32 = 0;
@@ -13,26 +14,26 @@ pub fn main() !void {
         const char_string = [1]u8{char};
         length += try std.fmt.parseUnsigned(u8, &char_string, 10);
     }
-    std.debug.print("LEN {d}\n", .{length});
+    print("LEN {d}\n", .{length});
 
     var buffer = try allocator.alloc(u32, length);
     defer allocator.free(buffer);
 
     // Part 1
-    try string_to_diskmap(raw, &buffer);
-    try compact_diskmap(buffer);
-    const res: u64 = sum_diskmap(buffer);
-    std.debug.print("RESULT: {d}\n", .{res});
+    try stringToDiskmap(raw, &buffer);
+    try compactDiskmap(buffer);
+    const res: u64 = sumDiskmap(buffer);
+    print("RESULT: {d}\n", .{res});
 
     // Part 2
-    try string_to_diskmap(raw, &buffer);
-    try defrag_diskmap(buffer, allocator);
-    const res2: u64 = sum_diskmap(buffer);
-    std.debug.print("RESULT 2: {d}\n", .{res2});
-    // std.debug.print("DEFRAG: {any}\n", .{buffer});
+    try stringToDiskmap(raw, &buffer);
+    try defragDiskmap(buffer, allocator);
+    const res2: u64 = sumDiskmap(buffer);
+    print("RESULT 2: {d}\n", .{res2});
+    // print("DEFRAG: {any}\n", .{buffer});
 }
 
-pub fn string_to_diskmap(string: []const u8, buffer: *[]u32) !void {
+pub fn stringToDiskmap(string: []const u8, buffer: *[]u32) !void {
     var mem_id: u32 = 1;
     var pos: u32 = 0;
     var file: bool = true;
@@ -40,7 +41,7 @@ pub fn string_to_diskmap(string: []const u8, buffer: *[]u32) !void {
     for (string) |char| {
         if (char == '\n') break;
         const char_string = [1]u8{char};
-        // std.debug.print("charstring: {any}\n", .{char_string});
+        // print("charstring: {any}\n", .{char_string});
         const len: u32 = try std.fmt.parseUnsigned(u8, &char_string, 10);
         if (file) {
             for (buffer.*[pos .. pos + len]) |*cell| {
@@ -57,12 +58,12 @@ pub fn string_to_diskmap(string: []const u8, buffer: *[]u32) !void {
     }
 }
 
-pub fn compact_diskmap(buffer: []u32) !void {
+pub fn compactDiskmap(buffer: []u32) !void {
     var left: u32 = 0;
     var right: u32 = std.math.cast(u32, buffer.len - 1).?;
 
     while (right >= 1) : (right -= 1) {
-        // std.debug.print("ROW: {d}, {d}\n", .{ left, right });
+        // print("ROW: {d}, {d}\n", .{ left, right });
         if (left >= right) break;
         if (buffer[right] > 0) {
             for (left..right) |pos| {
@@ -78,7 +79,7 @@ pub fn compact_diskmap(buffer: []u32) !void {
     }
 }
 
-pub fn defrag_diskmap(buffer: []u32, allocator: std.mem.Allocator) !void {
+pub fn defragDiskmap(buffer: []u32, allocator: std.mem.Allocator) !void {
     var right: u32 = std.math.cast(u32, buffer.len - 1).?;
     var seen = std.ArrayListUnmanaged(u32).empty;
     defer seen.deinit(allocator);
@@ -99,7 +100,7 @@ pub fn defrag_diskmap(buffer: []u32, allocator: std.mem.Allocator) !void {
         try seen.append(allocator, current_r);
 
         const len_r: u32 = start_r - right;
-        // std.debug.print("ROW R: Right: {d}, Current: {d}, Len: {d}\n", .{ right, current_r, len_r });
+        // print("ROW R: Right: {d}, Current: {d}, Len: {d}\n", .{ right, current_r, len_r });
 
         // Find left zero segment of correct size
         var left: u32 = 0;
@@ -108,7 +109,7 @@ pub fn defrag_diskmap(buffer: []u32, allocator: std.mem.Allocator) !void {
             start_l = left;
             const current_l: u32 = buffer[left];
             while (true) {
-                // std.debug.print("ROW L: Left: {d}, Current: {d}, Start: {d}\n", .{ left, current_l, start_l });
+                // print("ROW L: Left: {d}, Current: {d}, Start: {d}\n", .{ left, current_l, start_l });
                 left += 1;
                 if (left == buffer.len) continue :mainloop;
                 if (buffer[left] != current_l) break;
@@ -117,7 +118,7 @@ pub fn defrag_diskmap(buffer: []u32, allocator: std.mem.Allocator) !void {
             if ((len_l >= len_r) and (current_l == 0)) break;
         }
         if (left > (right + 1)) continue :mainloop;
-        // std.debug.print("MOVE L: StartL: {d}, LenR: {d}, Right: {d}\n", .{ start_l, len_r, right });
+        // print("MOVE L: StartL: {d}, LenR: {d}, Right: {d}\n", .{ start_l, len_r, right });
         // Move data from right to left
         for (buffer[start_l .. start_l + len_r]) |*cell| {
             cell.* = current_r;
@@ -125,17 +126,17 @@ pub fn defrag_diskmap(buffer: []u32, allocator: std.mem.Allocator) !void {
         for (buffer[right + 1 .. right + 1 + len_r]) |*cell| {
             cell.* = 0;
         }
-        // std.debug.print("FUNC END: {any}\n", .{buffer});
+        // print("FUNC END: {any}\n", .{buffer});
     }
-    // std.debug.print("EXITS MAINLOOP\n", .{});
+    // print("EXITS MAINLOOP\n", .{});
 }
 
-pub fn sum_diskmap(buffer: []u32) u64 {
+pub fn sumDiskmap(buffer: []u32) u64 {
     var res: u64 = 0;
     for (buffer, 0..) |num, i| {
         if (num == 0) continue;
         const numi: i16 = @intCast(num);
-        // std.debug.print("NUM: {d}, {d}\n", .{ num, i });
+        // print("NUM: {d}, {d}\n", .{ num, i });
         res += i * std.math.cast(u64, (numi - 1)).?;
     }
     return res;
@@ -151,27 +152,27 @@ test "example_1" {
         const char_string = [1]u8{char};
         length += try std.fmt.parseUnsigned(u8, &char_string, 10);
     }
-    std.debug.print("LEN {d}\n", .{length});
+    print("LEN {d}\n", .{length});
 
     var buffer = try allocator.alloc(u32, length);
     defer allocator.free(buffer);
 
-    try string_to_diskmap(sample, &buffer);
-    std.debug.print("BUFFER: {any}\n", .{buffer});
+    try stringToDiskmap(sample, &buffer);
+    print("BUFFER: {any}\n", .{buffer});
 
-    try compact_diskmap(buffer);
-    std.debug.print("COMPACT: {any}\n", .{buffer});
+    try compactDiskmap(buffer);
+    print("COMPACT: {any}\n", .{buffer});
 
-    const res: u64 = sum_diskmap(buffer);
-    std.debug.print("RESULT: {d}\n", .{res});
+    const res: u64 = sumDiskmap(buffer);
+    print("RESULT: {d}\n", .{res});
 
-    try string_to_diskmap(sample, &buffer);
+    try stringToDiskmap(sample, &buffer);
 
-    try defrag_diskmap(buffer, allocator);
-    std.debug.print("DEFRAG: {any}\n", .{buffer});
+    try defragDiskmap(buffer, allocator);
+    print("DEFRAG: {any}\n", .{buffer});
 
-    const res2: u64 = sum_diskmap(buffer);
-    std.debug.print("RESULT 2: {d}\n", .{res2});
+    const res2: u64 = sumDiskmap(buffer);
+    print("RESULT 2: {d}\n", .{res2});
 
     try testing.expect(res == 1928);
     try testing.expect(res2 == 2858);
@@ -187,30 +188,25 @@ test "example_2" {
         const char_string = [1]u8{char};
         length += try std.fmt.parseUnsigned(u8, &char_string, 10);
     }
-    std.debug.print("LEN {d}\n", .{length});
+    print("LEN {d}\n", .{length});
 
     var buffer = try allocator.alloc(u32, length);
     defer allocator.free(buffer);
 
-    try string_to_diskmap(sample, &buffer);
-    std.debug.print("BUFFER: {any}\n", .{buffer});
+    try stringToDiskmap(sample, &buffer);
+    print("BUFFER: {any}\n", .{buffer});
 
-    try compact_diskmap(buffer);
-    std.debug.print("COMPACT: {any}\n", .{buffer});
+    try compactDiskmap(buffer);
+    print("COMPACT: {any}\n", .{buffer});
 
-    const res: u64 = sum_diskmap(buffer);
-    std.debug.print("RESULT: {d}\n", .{res});
+    const res: u64 = sumDiskmap(buffer);
+    print("RESULT: {d}\n", .{res});
 
-    try string_to_diskmap(sample, &buffer);
+    try stringToDiskmap(sample, &buffer);
 
-    try defrag_diskmap(buffer, allocator);
-    std.debug.print("DEFRAG: {any}\n", .{buffer});
+    try defragDiskmap(buffer, allocator);
+    print("DEFRAG: {any}\n", .{buffer});
 
-    const res2: u64 = sum_diskmap(buffer);
-    std.debug.print("RESULT 2: {d}\n", .{res2});
-
-    // try testing.expect(res == 34);
-    // try testing.expect(res2 == 2858);
+    const res2: u64 = sumDiskmap(buffer);
+    print("RESULT 2: {d}\n", .{res2});
 }
-
-// { 2, 2, 3, 3, 0, 0, 4, 4, 4, 0, 0, 0 }
