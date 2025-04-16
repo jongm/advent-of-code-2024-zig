@@ -4,39 +4,6 @@ const print = std.debug.print;
 
 const raw = @embedFile("inputs/input20.txt");
 
-pub fn main() !void {
-    var debug_allcoator: std.heap.DebugAllocator(.{}) = .init;
-    const allocator = debug_allcoator.allocator();
-
-    const rows = 141;
-    const cols = 141;
-
-    const matrix: CharMatrix(u8, rows, cols) = .init(raw);
-
-    var map: std.AutoArrayHashMapUnmanaged([2]usize, u16) = .empty;
-    defer map.deinit(allocator);
-    const start_cell = try mapCellScoresReturnStart(allocator, &map, rows, cols, matrix);
-
-    var cheat_list = try checkCheats(allocator, map, rows, cols, matrix, start_cell);
-    defer cheat_list.deinit(allocator);
-
-    var res: usize = 0;
-    for (cheat_list.items) |item| {
-        if (item.saved >= 100) res += 1;
-    }
-    print("Result: {d}\n", .{res});
-
-    var res2: usize = 0;
-    var cheat_list_2 = try checkCheatsPartTwo(allocator, map, rows, cols, matrix, start_cell);
-    defer cheat_list_2.deinit(allocator);
-    var iterator = cheat_list_2.iterator();
-    while (iterator.next()) |entry| {
-        if (entry.value_ptr.* >= 100) res2 += 1;
-    }
-
-    print("Result 2: {d}\n", .{res2});
-}
-
 pub fn CharMatrix(comptime T: type, comptime rows: u16, comptime cols: u16) type {
     return struct {
         const Self = @This();
@@ -185,6 +152,40 @@ pub fn checkCheatsPartTwo(allocator: std.mem.Allocator, map: std.AutoArrayHashMa
 
     return cheatmap;
 }
+
+pub fn main() !void {
+    var debug_allcoator: std.heap.DebugAllocator(.{}) = .init;
+    const allocator = debug_allcoator.allocator();
+
+    const rows = 141;
+    const cols = 141;
+
+    const matrix: CharMatrix(u8, rows, cols) = .init(raw);
+
+    var map: std.AutoArrayHashMapUnmanaged([2]usize, u16) = .empty;
+    defer map.deinit(allocator);
+    const start_cell = try mapCellScoresReturnStart(allocator, &map, rows, cols, matrix);
+
+    var cheat_list = try checkCheats(allocator, map, rows, cols, matrix, start_cell);
+    defer cheat_list.deinit(allocator);
+
+    var res: usize = 0;
+    for (cheat_list.items) |item| {
+        if (item.saved >= 100) res += 1;
+    }
+    print("Result: {d}\n", .{res});
+
+    var res2: usize = 0;
+    var cheat_list_2 = try checkCheatsPartTwo(allocator, map, rows, cols, matrix, start_cell);
+    defer cheat_list_2.deinit(allocator);
+    var iterator = cheat_list_2.iterator();
+    while (iterator.next()) |entry| {
+        if (entry.value_ptr.* >= 100) res2 += 1;
+    }
+
+    print("Result 2: {d}\n", .{res2});
+}
+
 test "sample" {
     const sample =
         \\###############

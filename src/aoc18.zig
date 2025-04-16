@@ -1,5 +1,6 @@
 const std = @import("std");
 const testing = std.testing;
+const print = std.debug.print;
 
 const raw = @embedFile("inputs/input18.txt");
 
@@ -10,62 +11,6 @@ const Node = struct {
     pos: [2]usize,
     previous: [2]usize,
 };
-
-pub fn main() !void {
-    const rows = 71;
-    const cols = 71;
-
-    var debug_allocator = std.heap.DebugAllocator(.{}).init;
-    const allocator = debug_allocator.allocator();
-
-    var matrix: [rows][cols]u8 = undefined;
-    for (0..rows) |row| {
-        for (0..cols) |col| {
-            matrix[row][col] = '.';
-        }
-    }
-    var bytes: std.ArrayListUnmanaged([2]usize) = .empty;
-    defer bytes.deinit(allocator);
-    try parseBytes(allocator, raw, &bytes);
-
-    const n: usize = 1024;
-
-    for (0..n) |i| {
-        const byte = bytes.items[i];
-        matrix[byte[0]][byte[1]] = '#';
-    }
-    printMap(matrix);
-
-    var path = (try aStarAlgo(allocator, rows, cols, &matrix, [2]usize{ 0, 0 }, [2]usize{ rows - 1, cols - 1 })).?;
-    defer path.deinit(allocator);
-
-    for (path.items) |node| {
-        matrix[node.pos[0]][node.pos[1]] = 'O';
-    }
-    printMap(matrix);
-
-    var res: usize = 0;
-
-    for (matrix) |row| {
-        for (row) |cell| {
-            if (cell == 'O') res += 1;
-        }
-    }
-
-    std.debug.print("Result: {d}\n", .{res});
-
-    for (n..bytes.items.len) |i| {
-        const byte = bytes.items[i];
-        matrix[byte[0]][byte[1]] = '#';
-        var path2 = try aStarAlgo(allocator, rows, cols, &matrix, [2]usize{ 0, 0 }, [2]usize{ rows - 1, cols - 1 });
-        if (path2 == null) {
-            std.debug.print("Result 2: {d},{d} at {d}", .{ byte[1], byte[0], i });
-            break;
-        } else {
-            path2.?.deinit(allocator);
-        }
-    }
-}
 
 pub fn calcDistance(start: [2]usize, end: [2]usize) !usize {
     const dist_x = @max(start[0], end[0]) - @min(start[0], end[0]);
@@ -98,7 +43,7 @@ pub fn aStarAlgo(allocator: std.mem.Allocator, comptime rows: u8, comptime cols:
             }
         }
         current_node = unexplored_nodes.get(min_key).?;
-        // std.debug.print("CURRENT NODE: {any}, {any}\n", .{ min_key, current_node });
+        // print("CURRENT NODE: {any}, {any}\n", .{ min_key, current_node });
 
         _ = unexplored_nodes.remove(min_key);
         try explored_nodes.put(allocator, min_key, current_node);
@@ -157,12 +102,69 @@ pub fn parseBytes(allocator: std.mem.Allocator, string: []const u8, list: *std.A
 pub fn printMap(matrix: anytype) void {
     for (matrix) |row| {
         for (row) |cell| {
-            std.debug.print("{c}", .{cell});
+            print("{c}", .{cell});
         }
-        std.debug.print("\n", .{});
+        print("\n", .{});
     }
-    std.debug.print("\n", .{});
+    print("\n", .{});
 }
+
+pub fn main() !void {
+    const rows = 71;
+    const cols = 71;
+
+    var debug_allocator = std.heap.DebugAllocator(.{}).init;
+    const allocator = debug_allocator.allocator();
+
+    var matrix: [rows][cols]u8 = undefined;
+    for (0..rows) |row| {
+        for (0..cols) |col| {
+            matrix[row][col] = '.';
+        }
+    }
+    var bytes: std.ArrayListUnmanaged([2]usize) = .empty;
+    defer bytes.deinit(allocator);
+    try parseBytes(allocator, raw, &bytes);
+
+    const n: usize = 1024;
+
+    for (0..n) |i| {
+        const byte = bytes.items[i];
+        matrix[byte[0]][byte[1]] = '#';
+    }
+    // printMap(matrix);
+
+    var path = (try aStarAlgo(allocator, rows, cols, &matrix, [2]usize{ 0, 0 }, [2]usize{ rows - 1, cols - 1 })).?;
+    defer path.deinit(allocator);
+
+    for (path.items) |node| {
+        matrix[node.pos[0]][node.pos[1]] = 'O';
+    }
+    // printMap(matrix);
+
+    var res: usize = 0;
+
+    for (matrix) |row| {
+        for (row) |cell| {
+            if (cell == 'O') res += 1;
+        }
+    }
+
+    print("Result: {d}\n", .{res});
+
+    for (n..bytes.items.len) |i| {
+        const byte = bytes.items[i];
+        matrix[byte[0]][byte[1]] = '#';
+        var path2 = try aStarAlgo(allocator, rows, cols, &matrix, [2]usize{ 0, 0 }, [2]usize{ rows - 1, cols - 1 });
+        if (path2 == null) {
+            print("Result 2: {d},{d} at {d}", .{ byte[1], byte[0], i });
+            break;
+        } else {
+            path2.?.deinit(allocator);
+        }
+    }
+}
+
 test "sample" {
     const sample =
         \\5,4

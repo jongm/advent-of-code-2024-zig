@@ -4,172 +4,6 @@ const print = std.debug.print;
 
 const raw = @embedFile("inputs/input24.txt");
 
-pub fn main() !void {
-    var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
-    const allocator = debug_allocator.allocator();
-
-    var gatemap: std.StringArrayHashMapUnmanaged(u1) = .empty;
-    defer gatemap.deinit(allocator);
-
-    var input_iterator = std.mem.splitSequence(u8, raw, "\n\n");
-    const values = input_iterator.next().?;
-    const instructions = input_iterator.next().?;
-
-    var values_iter = std.mem.splitScalar(u8, values, '\n');
-    while (values_iter.next()) |row| {
-        if (row.len == 0) break;
-        const key = row[0..3];
-        const val = try std.fmt.parseInt(u1, row[5..6], 10);
-        try gatemap.put(allocator, key, val);
-    }
-    var gatemap2 = try gatemap.clone(allocator);
-    var operations: std.ArrayListUnmanaged([4][]const u8) = .empty;
-    defer operations.deinit(allocator);
-    try parseInstructions(allocator, instructions, &operations);
-
-    mainloop: while (operations.items.len > 0) {
-        for (operations.items, 0..) |oper, i| {
-            if (gatemap.contains(oper[0]) and gatemap.contains(oper[1])) {
-                try executeOperation(allocator, &gatemap, oper);
-                _ = operations.swapRemove(i);
-                continue :mainloop;
-            }
-        }
-    }
-
-    var res: u64 = 0;
-    var key_buffer: [3]u8 = @splat(0);
-    var count: usize = 0;
-    while (true) {
-        _ = try std.fmt.bufPrint(&key_buffer, "z{d:02}", .{count});
-        const bit = gatemap.get(&key_buffer) orelse break;
-        res += std.math.pow(u64, 2, @intCast(count)) * bit;
-        count += 1;
-    }
-    print("Result: {d}, Max Z: {d}\n", .{ res, count - 1 });
-
-    //Part 2
-    try parseInstructions(allocator, instructions, &operations);
-    const wrong_wires = findWrongWires(operations);
-    var wrong_wires_nums: [3]u8 = undefined;
-    var wr: u8 = 0;
-    for (wrong_wires) |wire| {
-        if (wire[0] == 'z') {
-            const num = try std.fmt.parseInt(u8, wire[1..], 10);
-            wrong_wires_nums[wr] = num;
-            wr += 1;
-        }
-    }
-    print("Wrong: {s}\n", .{wrong_wires});
-
-    var rewire_map = std.StringArrayHashMapUnmanaged([]const u8).empty;
-    var wrong_wires_fix: [6][]const u8 = @splat("000");
-
-    var n: u8 = 0;
-    var match_fixes: [6][3]u8 = @splat([3]u8{ 0, 0, 0 });
-    for (wrong_wires) |wire| {
-        if (wire[0] != 'z') {
-            const match = traverseWireBack(wire, operations);
-            const match_num = try std.fmt.parseInt(u8, match[1..3], 10);
-            var use_num: u8 = 0;
-            var dif: u8 = 255;
-            for (wrong_wires_nums) |num| {
-                if (num > match_num) continue;
-                const new_dif: u8 = match_num - num;
-                if (new_dif < dif) {
-                    use_num = num;
-                    dif = new_dif;
-                }
-            }
-            _ = try std.fmt.bufPrint(&match_fixes[n], "z{d}", .{use_num});
-            try rewire_map.put(allocator, wire, &match_fixes[n]);
-            try rewire_map.put(allocator, &match_fixes[n], wire);
-            print("From {s} we go to {s} fixed as {s}\n", .{ wire, match, match_fixes[n] });
-            wrong_wires_fix[n * 2] = wire;
-            wrong_wires_fix[n * 2 + 1] = &match_fixes[n];
-            n += 1;
-        }
-    }
-    print("Fixes: {s}\n", .{wrong_wires_fix});
-
-    // Correct the first 6 wrong wires
-    fixloop: for (wrong_wires_fix) |wire| {
-        for (operations.items, 0..) |op, i| {
-            if (std.mem.eql(u8, op[3], wire)) {
-                const new_op = [4][]const u8{ op[0], op[1], op[2], rewire_map.get(wire).? };
-                print("Swap {s} to {s}\n", .{ op[3], rewire_map.get(wire).? });
-                _ = operations.swapRemove(i);
-                try operations.append(allocator, new_op);
-                continue :fixloop;
-            }
-        }
-    }
-
-    mainloop2: while (operations.items.len > 0) {
-        for (operations.items, 0..) |oper, i| {
-            if (gatemap2.contains(oper[0]) and gatemap2.contains(oper[1])) {
-                // print("Oper {s}\n", .{oper});
-                try executeOperation(allocator, &gatemap2, oper);
-                _ = operations.swapRemove(i);
-                continue :mainloop2;
-            }
-        }
-        print("Remain {d}\n", .{operations.items.len});
-        break;
-    }
-
-    var res2: u64 = 0;
-    count = 0;
-    while (true) {
-        _ = try std.fmt.bufPrint(&key_buffer, "z{d:02}", .{count});
-        const bit = gatemap2.get(&key_buffer) orelse break;
-        res2 += std.math.pow(u64, 2, @intCast(count)) * bit;
-        count += 1;
-    }
-    var x: u45 = 0;
-    var y: u45 = 0;
-    var xbuff: [3]u8 = @splat(0);
-    var ybuff: [3]u8 = @splat(0);
-    for (0..45) |i| {
-        _ = try std.fmt.bufPrint(&xbuff, "x{d:02}", .{i});
-        _ = try std.fmt.bufPrint(&ybuff, "y{d:02}", .{i});
-        const bitx = gatemap.get(&xbuff).?;
-        const bity = gatemap.get(&ybuff).?;
-        x += std.math.pow(u45, 2, @intCast(i)) * bitx;
-        y += std.math.pow(u45, 2, @intCast(i)) * bity;
-    }
-    const real_result: u64 = try std.math.add(u64, x, y);
-    print("Result 2 Partial: {d}\n", .{res2});
-    print("Result 2 Real: {d}\n", .{real_result});
-    const res_xor = real_result ^ res2;
-    print("XOR: {b}\n", .{res_xor});
-
-    // Count leading zeros and put here:
-    // exmplae: 11000000000000000000000000000
-    const zeros = "27";
-
-    try parseInstructions(allocator, instructions, &operations);
-    var all_fixes: [8][]const u8 = undefined;
-    var i: usize = 0;
-    for (operations.items) |op| {
-        if (std.mem.eql(u8, op[0][1..], zeros) or std.mem.eql(u8, op[1][1..], zeros)) {
-            print("Operation with error: {s}\n", .{op});
-            all_fixes[i] = op[3];
-            i += 1;
-        }
-    }
-    for (wrong_wires_fix) |fix| {
-        all_fixes[i] = fix;
-        i += 1;
-    }
-    print("Final Fixes: {s}\n", .{all_fixes});
-    std.mem.sort([]const u8, &all_fixes, {}, sortStrings);
-    print("Solution part 2: ", .{});
-    for (all_fixes) |fix| {
-        print("{s},", .{fix});
-    }
-}
-
 fn sortStrings(_: void, lhs: []const u8, rhs: []const u8) bool {
     return std.mem.order(u8, lhs, rhs).compare(std.math.CompareOperator.lt);
 }
@@ -244,6 +78,173 @@ pub fn findWrongWires(operations: std.ArrayListUnmanaged([4][]const u8)) [6][]co
     }
     // Third possible cases
     return results;
+}
+
+pub fn main() !void {
+    var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
+    const allocator = debug_allocator.allocator();
+
+    var gatemap: std.StringArrayHashMapUnmanaged(u1) = .empty;
+    defer gatemap.deinit(allocator);
+
+    var input_iterator = std.mem.splitSequence(u8, raw, "\n\n");
+    const values = input_iterator.next().?;
+    const instructions = input_iterator.next().?;
+
+    var values_iter = std.mem.splitScalar(u8, values, '\n');
+    while (values_iter.next()) |row| {
+        if (row.len == 0) break;
+        const key = row[0..3];
+        const val = try std.fmt.parseInt(u1, row[5..6], 10);
+        try gatemap.put(allocator, key, val);
+    }
+    var gatemap2 = try gatemap.clone(allocator);
+    var operations: std.ArrayListUnmanaged([4][]const u8) = .empty;
+    defer operations.deinit(allocator);
+    try parseInstructions(allocator, instructions, &operations);
+
+    mainloop: while (operations.items.len > 0) {
+        for (operations.items, 0..) |oper, i| {
+            if (gatemap.contains(oper[0]) and gatemap.contains(oper[1])) {
+                try executeOperation(allocator, &gatemap, oper);
+                _ = operations.swapRemove(i);
+                continue :mainloop;
+            }
+        }
+    }
+
+    var res: u64 = 0;
+    var key_buffer: [3]u8 = @splat(0);
+    var count: usize = 0;
+    while (true) {
+        _ = try std.fmt.bufPrint(&key_buffer, "z{d:02}", .{count});
+        const bit = gatemap.get(&key_buffer) orelse break;
+        res += std.math.pow(u64, 2, @intCast(count)) * bit;
+        count += 1;
+    }
+    print("Result: {d}, Max Z: {d}\n", .{ res, count - 1 });
+
+    //Part 2
+    try parseInstructions(allocator, instructions, &operations);
+    const wrong_wires = findWrongWires(operations);
+    var wrong_wires_nums: [3]u8 = undefined;
+    var wr: u8 = 0;
+    for (wrong_wires) |wire| {
+        if (wire[0] == 'z') {
+            const num = try std.fmt.parseInt(u8, wire[1..], 10);
+            wrong_wires_nums[wr] = num;
+            wr += 1;
+        }
+    }
+    // print("Wrong: {s}\n", .{wrong_wires});
+
+    var rewire_map = std.StringArrayHashMapUnmanaged([]const u8).empty;
+    var wrong_wires_fix: [6][]const u8 = @splat("000");
+
+    var n: u8 = 0;
+    var match_fixes: [6][3]u8 = @splat([3]u8{ 0, 0, 0 });
+    for (wrong_wires) |wire| {
+        if (wire[0] != 'z') {
+            const match = traverseWireBack(wire, operations);
+            const match_num = try std.fmt.parseInt(u8, match[1..3], 10);
+            var use_num: u8 = 0;
+            var dif: u8 = 255;
+            for (wrong_wires_nums) |num| {
+                if (num > match_num) continue;
+                const new_dif: u8 = match_num - num;
+                if (new_dif < dif) {
+                    use_num = num;
+                    dif = new_dif;
+                }
+            }
+            _ = try std.fmt.bufPrint(&match_fixes[n], "z{d}", .{use_num});
+            try rewire_map.put(allocator, wire, &match_fixes[n]);
+            try rewire_map.put(allocator, &match_fixes[n], wire);
+            // print("From {s} we go to {s} fixed as {s}\n", .{ wire, match, match_fixes[n] });
+            wrong_wires_fix[n * 2] = wire;
+            wrong_wires_fix[n * 2 + 1] = &match_fixes[n];
+            n += 1;
+        }
+    }
+    // print("Fixes: {s}\n", .{wrong_wires_fix});
+
+    // Correct the first 6 wrong wires
+    fixloop: for (wrong_wires_fix) |wire| {
+        for (operations.items, 0..) |op, i| {
+            if (std.mem.eql(u8, op[3], wire)) {
+                const new_op = [4][]const u8{ op[0], op[1], op[2], rewire_map.get(wire).? };
+                // print("Swap {s} to {s}\n", .{ op[3], rewire_map.get(wire).? });
+                _ = operations.swapRemove(i);
+                try operations.append(allocator, new_op);
+                continue :fixloop;
+            }
+        }
+    }
+
+    mainloop2: while (operations.items.len > 0) {
+        for (operations.items, 0..) |oper, i| {
+            if (gatemap2.contains(oper[0]) and gatemap2.contains(oper[1])) {
+                // print("Oper {s}\n", .{oper});
+                try executeOperation(allocator, &gatemap2, oper);
+                _ = operations.swapRemove(i);
+                continue :mainloop2;
+            }
+        }
+        print("Remain {d}\n", .{operations.items.len});
+        break;
+    }
+
+    var res2: u64 = 0;
+    count = 0;
+    while (true) {
+        _ = try std.fmt.bufPrint(&key_buffer, "z{d:02}", .{count});
+        const bit = gatemap2.get(&key_buffer) orelse break;
+        res2 += std.math.pow(u64, 2, @intCast(count)) * bit;
+        count += 1;
+    }
+    var x: u45 = 0;
+    var y: u45 = 0;
+    var xbuff: [3]u8 = @splat(0);
+    var ybuff: [3]u8 = @splat(0);
+    for (0..45) |i| {
+        _ = try std.fmt.bufPrint(&xbuff, "x{d:02}", .{i});
+        _ = try std.fmt.bufPrint(&ybuff, "y{d:02}", .{i});
+        const bitx = gatemap.get(&xbuff).?;
+        const bity = gatemap.get(&ybuff).?;
+        x += std.math.pow(u45, 2, @intCast(i)) * bitx;
+        y += std.math.pow(u45, 2, @intCast(i)) * bity;
+    }
+    // const real_result: u64 = try std.math.add(u64, x, y);
+    // print("Result 2 Partial: {d}\n", .{res2});
+    // print("Result 2 Real: {d}\n", .{real_result});
+    // const res_xor = real_result ^ res2;
+    // print("XOR: {b}\n", .{res_xor});
+
+    // Count leading zeros and put here:
+    // exmplae: 11000000000000000000000000000
+    const zeros = "27";
+    print("\n\nHardcoding amount fo zeros, {s} in my case. Use yours!!\n\n", .{zeros});
+
+    try parseInstructions(allocator, instructions, &operations);
+    var all_fixes: [8][]const u8 = undefined;
+    var i: usize = 0;
+    for (operations.items) |op| {
+        if (std.mem.eql(u8, op[0][1..], zeros) or std.mem.eql(u8, op[1][1..], zeros)) {
+            // print("Operation with error: {s}\n", .{op});
+            all_fixes[i] = op[3];
+            i += 1;
+        }
+    }
+    for (wrong_wires_fix) |fix| {
+        all_fixes[i] = fix;
+        i += 1;
+    }
+    // print("Final Fixes: {s}\n", .{all_fixes});
+    std.mem.sort([]const u8, &all_fixes, {}, sortStrings);
+    print("Solution part 2: ", .{});
+    for (all_fixes) |fix| {
+        print("{s},", .{fix});
+    }
 }
 
 test "sample" {

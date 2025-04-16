@@ -4,75 +4,6 @@ const print = std.debug.print;
 
 const raw = @embedFile("inputs/input21.txt");
 
-pub fn main() !void {
-    var debug_alloc = std.heap.DebugAllocator(.{}).init;
-    var arena = std.heap.ArenaAllocator.init(debug_alloc.allocator());
-    defer arena.deinit();
-    const allocator = arena.allocator();
-
-    var keypad1: u8 = 'A';
-    var keypad2: u8 = 'A';
-    var keypad3: u8 = 'A';
-
-    var list1: std.ArrayListUnmanaged([]u8) = .empty;
-    var list2: std.ArrayListUnmanaged([]u8) = .empty;
-    var list3: std.ArrayListUnmanaged([]u8) = .empty;
-
-    var res: usize = 0;
-    var iterator = std.mem.splitScalar(u8, raw, '\n');
-    while (iterator.next()) |code| {
-        if (code.len == 0) break;
-        keypad1 = 'A';
-        keypad2 = 'A';
-        keypad3 = 'A';
-        list1.clearRetainingCapacity();
-        list2.clearRetainingCapacity();
-        list3.clearRetainingCapacity();
-        try typeCode(allocator, code, &keypad1, &keypad2, &keypad3, &list1, &list2, &list3);
-        //const moves1 = try listToString(allocator, &list1);
-        //const moves2 = try listToString(allocator, &list2);
-        const moves3 = try listToString(allocator, &list3);
-
-        const code_number = try std.fmt.parseInt(usize, code[0..3], 10);
-        const complexity = code_number * moves3.len;
-        res += complexity;
-    }
-
-    print("Result: {d}", .{res});
-
-    var memo: std.AutoArrayHashMapUnmanaged([3]u8, u64) = .empty;
-    const max_robots: u8 = 25;
-
-    var res2: usize = 0;
-    iterator.reset();
-    while (iterator.next()) |code| {
-        if (code.len == 0) break;
-
-        memo.clearRetainingCapacity();
-
-        var k1: u8 = 'A';
-        var buffer = try allocator.alloc(u8, max_robots);
-        for (0..buffer.len) |i| buffer[i] = 'A';
-        const current: u8 = 0;
-
-        var code_res: u64 = 0;
-        for (code) |char| {
-            const steps1 = try findStepsDigits(allocator, char, &k1);
-            for (steps1) |step| {
-                const partial = try findStepsRecursive(allocator, step, &buffer, current, max_robots, &memo);
-                code_res += partial;
-            }
-        }
-
-        const code_number = try std.fmt.parseInt(u64, code[0..3], 10);
-        const complexity = code_number * code_res;
-        print("\n\nPART 2: Code: {s}, Complexity: {d} [{d}, {d}]\n", .{ code, complexity, code_number, code_res });
-        res2 += complexity;
-    }
-
-    print("\nResult 2: {d}\n", .{res2});
-}
-
 pub fn findStepsDigits(allocator: std.mem.Allocator, target: u8, k1: *u8) ![]u8 {
     const keypad = "789456123x0A";
     const target_pos = std.mem.indexOfScalar(u8, keypad, target).?;
@@ -267,6 +198,75 @@ pub fn listToString(allocator: std.mem.Allocator, list: *std.ArrayListUnmanaged(
         len += new_len;
     }
     return buffer;
+}
+
+pub fn main() !void {
+    var debug_alloc = std.heap.DebugAllocator(.{}).init;
+    var arena = std.heap.ArenaAllocator.init(debug_alloc.allocator());
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    var keypad1: u8 = 'A';
+    var keypad2: u8 = 'A';
+    var keypad3: u8 = 'A';
+
+    var list1: std.ArrayListUnmanaged([]u8) = .empty;
+    var list2: std.ArrayListUnmanaged([]u8) = .empty;
+    var list3: std.ArrayListUnmanaged([]u8) = .empty;
+
+    var res: usize = 0;
+    var iterator = std.mem.splitScalar(u8, raw, '\n');
+    while (iterator.next()) |code| {
+        if (code.len == 0) break;
+        keypad1 = 'A';
+        keypad2 = 'A';
+        keypad3 = 'A';
+        list1.clearRetainingCapacity();
+        list2.clearRetainingCapacity();
+        list3.clearRetainingCapacity();
+        try typeCode(allocator, code, &keypad1, &keypad2, &keypad3, &list1, &list2, &list3);
+        //const moves1 = try listToString(allocator, &list1);
+        //const moves2 = try listToString(allocator, &list2);
+        const moves3 = try listToString(allocator, &list3);
+
+        const code_number = try std.fmt.parseInt(usize, code[0..3], 10);
+        const complexity = code_number * moves3.len;
+        res += complexity;
+    }
+
+    print("Result: {d}", .{res});
+
+    var memo: std.AutoArrayHashMapUnmanaged([3]u8, u64) = .empty;
+    const max_robots: u8 = 25;
+
+    var res2: usize = 0;
+    iterator.reset();
+    while (iterator.next()) |code| {
+        if (code.len == 0) break;
+
+        memo.clearRetainingCapacity();
+
+        var k1: u8 = 'A';
+        var buffer = try allocator.alloc(u8, max_robots);
+        for (0..buffer.len) |i| buffer[i] = 'A';
+        const current: u8 = 0;
+
+        var code_res: u64 = 0;
+        for (code) |char| {
+            const steps1 = try findStepsDigits(allocator, char, &k1);
+            for (steps1) |step| {
+                const partial = try findStepsRecursive(allocator, step, &buffer, current, max_robots, &memo);
+                code_res += partial;
+            }
+        }
+
+        const code_number = try std.fmt.parseInt(u64, code[0..3], 10);
+        const complexity = code_number * code_res;
+        // print("\n\nPART 2: Code: {s}, Complexity: {d} [{d}, {d}]\n", .{ code, complexity, code_number, code_res });
+        res2 += complexity;
+    }
+
+    print("\nResult 2: {d}\n", .{res2});
 }
 
 test "sample" {

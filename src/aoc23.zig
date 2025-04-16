@@ -4,61 +4,6 @@ const print = std.debug.print;
 
 const raw = @embedFile("inputs/input23.txt");
 
-pub fn main() !void {
-    var debugalloc = std.heap.DebugAllocator(.{}).init;
-    var arena = std.heap.ArenaAllocator.init(debugalloc.allocator());
-    defer arena.deinit();
-    const allocator = arena.allocator();
-
-    var lan_map: std.StringHashMapUnmanaged(std.ArrayListUnmanaged([]const u8)) = .empty;
-
-    var iterator = std.mem.splitScalar(u8, raw, '\n');
-    while (iterator.next()) |row| {
-        if (row.len == 0) break;
-        try parsePairs(allocator, row, &lan_map);
-    }
-
-    const trios = try findTrios(allocator, &lan_map);
-
-    var start_with_t: u32 = 0;
-    for (trios.items) |trio| {
-        for (trio) |pc| {
-            if (pc[0] == 't') {
-                start_with_t += 1;
-                break;
-            }
-        }
-    }
-
-    print("Result: {d}\n", .{start_with_t});
-
-    const current: std.ArrayListUnmanaged([]const u8) = .empty;
-    const checked: std.ArrayListUnmanaged([]const u8) = .empty;
-    var possible: std.ArrayListUnmanaged([]const u8) = .empty;
-    var key_iter = lan_map.keyIterator();
-    while (key_iter.next()) |key| {
-        try possible.append(allocator, key.*);
-    }
-    var cliques: std.ArrayListUnmanaged(std.ArrayListUnmanaged([]const u8)) = .empty;
-
-    try bronKerbosch(allocator, &lan_map, current, possible, checked, &cliques);
-
-    var res2: usize = 0;
-    var index2: usize = 0;
-    for (cliques.items, 0..) |clique, i| {
-        if (clique.items.len > res2) {
-            res2 = clique.items.len;
-            index2 = i;
-        }
-    }
-    const biggest = cliques.items[index2].items;
-    std.mem.sort([]const u8, biggest, {}, sortStrings);
-    print("Result 2: ", .{});
-    for (biggest) |node| {
-        print("{s},", .{node});
-    }
-}
-
 pub fn parsePairs(allocator: std.mem.Allocator, pair: []const u8, map: *std.StringHashMapUnmanaged(std.ArrayListUnmanaged([]const u8))) !void {
     const a = pair[0..2];
     const b = pair[3..5];
@@ -164,6 +109,61 @@ pub fn bronKerbosch(allocator: std.mem.Allocator, map: *std.StringHashMapUnmanag
         }
         try bronKerbosch(allocator, map, current, possible_next, checked_next, cliques);
         try checked.append(allocator, new);
+    }
+}
+
+pub fn main() !void {
+    var debugalloc = std.heap.DebugAllocator(.{}).init;
+    var arena = std.heap.ArenaAllocator.init(debugalloc.allocator());
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    var lan_map: std.StringHashMapUnmanaged(std.ArrayListUnmanaged([]const u8)) = .empty;
+
+    var iterator = std.mem.splitScalar(u8, raw, '\n');
+    while (iterator.next()) |row| {
+        if (row.len == 0) break;
+        try parsePairs(allocator, row, &lan_map);
+    }
+
+    const trios = try findTrios(allocator, &lan_map);
+
+    var start_with_t: u32 = 0;
+    for (trios.items) |trio| {
+        for (trio) |pc| {
+            if (pc[0] == 't') {
+                start_with_t += 1;
+                break;
+            }
+        }
+    }
+
+    print("Result: {d}\n", .{start_with_t});
+
+    const current: std.ArrayListUnmanaged([]const u8) = .empty;
+    const checked: std.ArrayListUnmanaged([]const u8) = .empty;
+    var possible: std.ArrayListUnmanaged([]const u8) = .empty;
+    var key_iter = lan_map.keyIterator();
+    while (key_iter.next()) |key| {
+        try possible.append(allocator, key.*);
+    }
+    var cliques: std.ArrayListUnmanaged(std.ArrayListUnmanaged([]const u8)) = .empty;
+
+    try bronKerbosch(allocator, &lan_map, current, possible, checked, &cliques);
+
+    var res2: usize = 0;
+    var index2: usize = 0;
+    for (cliques.items, 0..) |clique, i| {
+        if (clique.items.len > res2) {
+            res2 = clique.items.len;
+            index2 = i;
+        }
+    }
+    const biggest = cliques.items[index2].items;
+    std.mem.sort([]const u8, biggest, {}, sortStrings);
+    print("Result 2: ", .{});
+    for (biggest) |node| {
+        print("{s},", .{node});
     }
 }
 
