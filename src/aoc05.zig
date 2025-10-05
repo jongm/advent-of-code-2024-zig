@@ -129,5 +129,5 @@ pub fn main() !void {
         }
     }
 
-    print("RESULT: \nPart 1: {d}\nPart 2: {d}", .{ sum_ok, sum_not });
+    print("Part 1: {d}\nPart 2: {d}\n", .{ sum_ok, sum_not });
 }

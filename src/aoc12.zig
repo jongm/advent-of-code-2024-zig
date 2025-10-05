@@ -196,7 +196,7 @@ pub fn main() !void {
         // print("PLOT {d}: LEN: {d}, PERIM: {d}\n", .{ i, len, perim });
         res += len * perim;
     }
-    print("RESULT: {d}\n", .{res});
+    print("Part 1: {d}\n", .{res});
 
     var res2: u32 = 0;
     for (plots.items) |plot| {
@@ -204,7 +204,7 @@ pub fn main() !void {
         const len: u32 = @intCast(plot.items.len);
         res2 += len * sides;
     }
-    print("RESULT 2: {d}\n", .{res2});
+    print("Part 2: {d}\n", .{res2});
 }
 
 test "sample" {

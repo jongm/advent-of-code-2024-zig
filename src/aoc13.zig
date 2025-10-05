@@ -68,8 +68,8 @@ pub fn main() !void {
             res2 += cost2;
         }
     }
-    print("Result: {d}\n", .{res});
-    print("Result 2: {d}\n", .{res2});
+    print("Part 1: {d}\n", .{res});
+    print("Part 2: {d}\n", .{res2});
 }
 
 test "check_machines" {

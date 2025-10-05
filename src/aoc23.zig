@@ -138,7 +138,7 @@ pub fn main() !void {
         }
     }
 
-    print("Result: {d}\n", .{start_with_t});
+    print("Part: {d}\n", .{start_with_t});
 
     const current: std.ArrayListUnmanaged([]const u8) = .empty;
     const checked: std.ArrayListUnmanaged([]const u8) = .empty;
@@ -161,7 +161,7 @@ pub fn main() !void {
     }
     const biggest = cliques.items[index2].items;
     std.mem.sort([]const u8, biggest, {}, sortStrings);
-    print("Result 2: ", .{});
+    print("Part 2: ", .{});
     for (biggest) |node| {
         print("{s},", .{node});
     }

@@ -153,11 +153,11 @@ pub fn readSeqPartTwo(seq: []const u8) u32 {
 pub fn main() !void {
     const result = readSeq(input);
 
-    print("Result: {d}\n", .{result});
+    print("Part 1: {d}\n", .{result});
 
     const result2 = readSeqPartTwo(input);
 
-    print("Result 2: {d}\n", .{result2});
+    print("Part 2: {d}\n", .{result2});
 }
 
 test "calculate" {

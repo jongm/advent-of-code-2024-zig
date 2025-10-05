@@ -35,15 +35,15 @@ pub fn main() !void {
         waitSecond(cols, rows, &matrix, robots.items);
         if (i == 100) {
             res = countCuadrants(cols, rows, &matrix);
-            print("RESULT: {d}\n", .{res});
+            print("Part 1: {d}\n", .{res});
         }
 
         // This means that probabbly the tree is there:
         const to_check: bool = checkForTree(cols, rows, &matrix, 20);
 
         if (to_check) {
-            print("x1B[2J\x1B[H", .{});
-            print("\nResult 2: {d}\n", .{i});
+            // print("x1B[2J\x1B[H\n", .{});
+            print("Part 2: {d}\n", .{i});
             //// These lines below plot the tree
             // for (matrix) |row| {
             //     for (row) |cell| {

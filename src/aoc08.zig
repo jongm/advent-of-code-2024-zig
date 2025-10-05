@@ -119,7 +119,7 @@ pub fn main() !void {
             }
         }
     }
-    print("Result: {d}\n", .{res});
+    print("Part 1: {d}\n", .{res});
 
     var res2: u16 = 0;
     for (matrix2) |row| {
@@ -129,7 +129,7 @@ pub fn main() !void {
             }
         }
     }
-    print("R2sult2 2: {d}\n", .{res2});
+    print("Part 2: {d}\n", .{res2});
 }
 
 test "example" {

@@ -82,7 +82,7 @@ pub fn main() !void {
     defer changes_list.deinit(allocator);
     var prices_list: std.ArrayListUnmanaged([2000]u8) = .empty;
     defer prices_list.deinit(allocator);
-    print("Result: {d}\n", .{res});
+    print("Part 1: {d}\n", .{res});
 
     // Part 2
     iterator.reset();
@@ -118,7 +118,7 @@ pub fn main() !void {
         if (new_val > res2) res2 = new_val;
     }
 
-    print("Best bananas: {d}\n", .{res2});
+    print("Part 2: {d}\n", .{res2});
 }
 
 test "sample" {

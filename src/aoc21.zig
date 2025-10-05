@@ -234,7 +234,7 @@ pub fn main() !void {
         res += complexity;
     }
 
-    print("Result: {d}", .{res});
+    print("Part 1: {d}\n", .{res});
 
     var memo: std.AutoArrayHashMapUnmanaged([3]u8, u64) = .empty;
     const max_robots: u8 = 25;
@@ -266,7 +266,7 @@ pub fn main() !void {
         res2 += complexity;
     }
 
-    print("\nResult 2: {d}\n", .{res2});
+    print("Part 2: {d}\n", .{res2});
 }
 
 test "sample" {

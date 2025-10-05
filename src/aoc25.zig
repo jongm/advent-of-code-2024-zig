@@ -49,7 +49,7 @@ pub fn main() !void {
 
     const res = matchLocksAndKeys(&lock_list, &key_list);
 
-    print("Result {d}\n", .{res});
+    print("Part 1 {d}\n", .{res});
 }
 
 test "sample" {

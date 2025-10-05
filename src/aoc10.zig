@@ -78,8 +78,8 @@ pub fn main() !void {
             }
         }
     }
-    print("RESULT {d}\n", .{total});
-    print("RESULT2 {d}\n", .{total2});
+    print("Part 1: {d}\n", .{total});
+    print("Part 2: {d}\n", .{total2});
 }
 
 test "sample" {

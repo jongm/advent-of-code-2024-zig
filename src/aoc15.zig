@@ -207,10 +207,10 @@ pub fn main() !void {
     // printMap(matrix);
 
     const res = countBoxes(&matrix);
-    print("RESULT: {d}\n", .{res});
+    print("Part 1: {d}\n", .{res});
 
     // SECOND PART
-    print("SECOND PART \n\n\n", .{});
+    // print("SECOND PART \n\n\n", .{});
 
     iterator.reset();
 
@@ -242,7 +242,7 @@ pub fn main() !void {
     // printMap(matrix_wide);
 
     const res2 = countBoxes(&matrix_wide);
-    print("RESULT 2: {d}\n", .{res2});
+    print("Part 2: {d}\n", .{res2});
 }
 
 // test "sample" { // THIS TEST IS INTERACTIVE

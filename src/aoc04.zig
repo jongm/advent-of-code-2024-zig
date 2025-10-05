@@ -120,10 +120,10 @@ pub fn main() !void {
     readIntoMatrix(rows, cols, raw, &matrix);
 
     const res = countXmas(rows, cols, matrix);
-    print("RESULT: {d}, ", .{res});
+    print("Part 1: {d}\n", .{res});
 
     const res2 = countXmasPartTwo(rows, cols, matrix);
-    print("RESULT 2: {d}", .{res2});
+    print("Part 2: {d}\n", .{res2});
 }
 
 test "example" {

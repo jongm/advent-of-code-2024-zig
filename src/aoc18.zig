@@ -150,14 +150,14 @@ pub fn main() !void {
         }
     }
 
-    print("Result: {d}\n", .{res});
+    print("Part 1: {d}\n", .{res});
 
     for (n..bytes.items.len) |i| {
         const byte = bytes.items[i];
         matrix[byte[0]][byte[1]] = '#';
         var path2 = try aStarAlgo(allocator, rows, cols, &matrix, [2]usize{ 0, 0 }, [2]usize{ rows - 1, cols - 1 });
         if (path2 == null) {
-            print("Result 2: {d},{d} at {d}", .{ byte[1], byte[0], i });
+            print("Part 2: {d},{d} at {d}\n", .{ byte[1], byte[0], i });
             break;
         } else {
             path2.?.deinit(allocator);

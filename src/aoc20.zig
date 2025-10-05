@@ -173,7 +173,7 @@ pub fn main() !void {
     for (cheat_list.items) |item| {
         if (item.saved >= 100) res += 1;
     }
-    print("Result: {d}\n", .{res});
+    print("Part 1: {d}\n", .{res});
 
     var res2: usize = 0;
     var cheat_list_2 = try checkCheatsPartTwo(allocator, map, rows, cols, matrix, start_cell);
@@ -183,7 +183,7 @@ pub fn main() !void {
         if (entry.value_ptr.* >= 100) res2 += 1;
     }
 
-    print("Result 2: {d}\n", .{res2});
+    print("Part 2: {d}\n", .{res2});
 }
 
 test "sample" {

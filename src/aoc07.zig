@@ -15,7 +15,7 @@ pub fn main() !void {
         if (row.len == 0) break;
         res += try checkLine(allocator, row, power);
     }
-    print("Result: {d}\n", .{res});
+    print("Part 1: {d}\n", .{res});
 
     const power2 = 3;
     rows_iter.reset();
@@ -24,7 +24,7 @@ pub fn main() !void {
         if (row.len == 0) break;
         res2 += try checkLine(allocator, row, power2);
     }
-    print("Result: {d}", .{res2});
+    print("Part 2: {d}\n", .{res2});
 }
 
 pub fn checkLine(allocator: std.mem.Allocator, line: []const u8, power: u8) !u64 {

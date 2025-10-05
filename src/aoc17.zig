@@ -174,11 +174,11 @@ pub fn main() !void {
     // print("PROGRAM: {any}\n", .{program});
 
     const instructions = try parseProgram(allocator, program);
-    print("Instructions: {any} \n", .{instructions});
+    // print("Instructions: {any} \n", .{instructions});
     defer allocator.free(instructions);
     // registers[0] = 236539226447469;
     runProgram(instructions, &registers, &buffer, &b_len);
-    print("Result: {any} \n", .{buffer[0..b_len]});
+    print("Part 1: {any} \n", .{buffer[0..b_len]});
 
     // Part 2
     const matched = try allocator.alloc(u8, instructions.len);
@@ -194,7 +194,7 @@ pub fn main() !void {
     for (results_list.items) |item| {
         if (item < res2) res2 = item;
     }
-    print("Result 2: {d}", .{res2});
+    print("Part 2: {d}\n", .{res2});
 }
 
 test "sample" {

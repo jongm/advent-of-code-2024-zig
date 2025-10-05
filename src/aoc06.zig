@@ -68,7 +68,7 @@ pub fn main() !void {
             }
         }
     }
-    print("Result 1: {d}, ", .{res});
+    print("Result 1: {d}\n", .{res});
 
     var res2: u16 = 0;
     for (0..cols) |col| {
@@ -82,5 +82,5 @@ pub fn main() !void {
             }
         }
     }
-    print("Result 2: {d}, ", .{res2});
+    print("Result 2: {d}\n", .{res2});
 }

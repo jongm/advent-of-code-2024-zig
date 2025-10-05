@@ -77,8 +77,8 @@ pub fn main() !void {
         if (checkReport(slice.items, 1)) safes2 += 1;
     }
 
-    std.debug.print("Safe reports: {d}\n", .{safes});
-    std.debug.print("Safe reports part 2: {d}\n", .{safes2});
+    std.debug.print("Part 1: {d}\n", .{safes});
+    std.debug.print("Part 2: {d}\n", .{safes2});
 }
 
 test "safe0" {

@@ -14,7 +14,7 @@ pub fn main() !void {
         const char_string = [1]u8{char};
         length += try std.fmt.parseUnsigned(u8, &char_string, 10);
     }
-    print("LEN {d}\n", .{length});
+    // print("LEN {d}\n", .{length});
 
     var buffer = try allocator.alloc(u32, length);
     defer allocator.free(buffer);
@@ -23,13 +23,13 @@ pub fn main() !void {
     try stringToDiskmap(raw, &buffer);
     try compactDiskmap(buffer);
     const res: u64 = sumDiskmap(buffer);
-    print("RESULT: {d}\n", .{res});
+    print("Part 1: {d}\n", .{res});
 
     // Part 2
     try stringToDiskmap(raw, &buffer);
     try defragDiskmap(buffer, allocator);
     const res2: u64 = sumDiskmap(buffer);
-    print("RESULT 2: {d}\n", .{res2});
+    print("Part 2: {d}\n", .{res2});
     // print("DEFRAG: {any}\n", .{buffer});
 }
 

@@ -69,7 +69,7 @@ pub fn main() !void {
     while (iterator.next()) |entry| {
         res += entry.value_ptr.*;
     }
-    print("Result: {d}\n", .{res});
+    print("Part 1: {d}\n", .{res});
 
     var stones2: std.AutoHashMapUnmanaged(u64, u64) = .empty;
     defer stones2.deinit(allocator);
@@ -84,7 +84,7 @@ pub fn main() !void {
     while (iterator2.next()) |entry| {
         res2 += entry.value_ptr.*;
     }
-    print("Result 2: {d}\n", .{res2});
+    print("Part 2: {d}\n", .{res2});
 }
 
 test "sample" {

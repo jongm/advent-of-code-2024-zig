@@ -51,7 +51,7 @@ pub fn main() !void {
     for (col1.items, col2.items) |num1, num2| {
         sum += @abs(num1 - num2);
     }
-    print("Results: {d}\n", .{sum});
+    print("Part 1: {d}\n", .{sum});
 
     var sum2: i64 = 0;
     for (col1.items) |num1| {
@@ -61,5 +61,5 @@ pub fn main() !void {
             }
         }
     }
-    print("Results 2: {d}\n", .{sum2});
+    print("Part 2: {d}\n", .{sum2});
 }

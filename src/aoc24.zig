@@ -122,7 +122,7 @@ pub fn main() !void {
         res += std.math.pow(u64, 2, @intCast(count)) * bit;
         count += 1;
     }
-    print("Result: {d}, Max Z: {d}\n", .{ res, count - 1 });
+    print("Part 1: {d}, Max Z: {d}\n", .{ res, count - 1 });
 
     //Part 2
     try parseInstructions(allocator, instructions, &operations);
@@ -241,7 +241,7 @@ pub fn main() !void {
     }
     // print("Final Fixes: {s}\n", .{all_fixes});
     std.mem.sort([]const u8, &all_fixes, {}, sortStrings);
-    print("Solution part 2: ", .{});
+    print("Part 2: ", .{});
     for (all_fixes) |fix| {
         print("{s},", .{fix});
     }

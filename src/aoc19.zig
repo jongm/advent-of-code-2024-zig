@@ -63,7 +63,7 @@ pub fn main() !void {
         const match = matchTowels(word, towel_list.items);
         if (match) res += 1;
     }
-    print("Result: {d}\n", .{res});
+    print("Part 1: {d}\n", .{res});
 
     var res2: u64 = 0;
     var memo: std.StringHashMapUnmanaged(u64) = .empty;
@@ -76,7 +76,7 @@ pub fn main() !void {
         res2 += match;
     }
 
-    print("Result 2: {d}\n", .{res2});
+    print("Part 2: {d}\n", .{res2});
 }
 
 test "sample" {

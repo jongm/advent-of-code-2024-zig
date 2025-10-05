@@ -88,7 +88,7 @@ pub fn main() !void {
     //     matrix[node.pos[0]][node.pos[1]] = 'O';
     // }
     // // printMap(matrix);
-    print("Result: {d}\n", .{cost});
+    print("Part 1: {d}\n", .{cost});
 
     // PART 2
 
@@ -107,7 +107,7 @@ pub fn main() !void {
     }
     // printMap(matrix);
 
-    print("Result 2 {d}\n", .{res2});
+    print("Part 2: {d}\n", .{res2});
 }
 
 test "calc_distance" {
