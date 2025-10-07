@@ -4,111 +4,133 @@ const print = std.debug.print;
 
 const raw = @embedFile("inputs/input07.txt");
 
-pub fn main() !void {
-    var gpa = std.heap.DebugAllocator(.{}).init;
-    const allocator = gpa.allocator();
+const Ops = enum { sum, mul, conc };
 
-    const power = 2;
+pub fn main() !void {
+    var buffer: [16]u64 = undefined;
+
+    const ops1 = [_]Ops{ Ops.sum, Ops.mul };
     var rows_iter = std.mem.splitScalar(u8, raw, '\n');
     var res: u64 = 0;
     while (rows_iter.next()) |row| {
         if (row.len == 0) break;
-        res += try checkLine(allocator, row, power);
+        res += try checkLine(&buffer, row, &ops1);
     }
     print("Part 1: {d}\n", .{res});
 
-    const power2 = 3;
+    const ops2 = [_]Ops{ Ops.sum, Ops.mul, Ops.conc };
     rows_iter.reset();
     var res2: u64 = 0;
     while (rows_iter.next()) |row| {
         if (row.len == 0) break;
-        res2 += try checkLine(allocator, row, power2);
+        res2 += try checkLine(&buffer, row, &ops2);
     }
     print("Part 2: {d}\n", .{res2});
 }
 
-pub fn checkLine(allocator: std.mem.Allocator, line: []const u8, power: u8) !u64 {
+pub fn findDigits(num: u64) u64 {
+    var digits: u64 = 1;
+    while (num >= std.math.pow(u64, 10, digits)) {
+        digits += 1;
+    }
+    return digits;
+}
+
+pub fn checkLine(buffer: []u64, line: []const u8, comptime ops: []const Ops) !u64 {
     var row_iter = std.mem.splitSequence(u8, line, ":");
     const target: u64 = try std.fmt.parseUnsigned(u64, row_iter.next().?, 10);
 
     const numbers_str: []const u8 = std.mem.trim(u8, row_iter.next().?, " ");
 
     var nums_iter = std.mem.splitScalar(u8, numbers_str, ' ');
-    var numbers: std.ArrayListUnmanaged(u64) = .empty;
-    defer numbers.deinit(allocator);
 
-    while (nums_iter.next()) |num| {
-        const nump = try std.fmt.parseUnsigned(u64, num, 10);
-        try numbers.append(allocator, nump);
+    var pos: usize = 0;
+    while (nums_iter.next()) |num| : (pos += 1) {
+        buffer[pos] = try std.fmt.parseUnsigned(u64, num, 10);
     }
 
-    if (try checkOperators(target, numbers.items, power)) {
+    if (try doNextOperation(target, buffer[0], buffer[1..pos], ops)) {
         return target;
     } else {
         return 0;
     }
 }
 
-pub fn concatNum(comptime T: type, num1: T, num2: T) !T {
-    var buf: [24]u8 = undefined;
-    const numAsString = try std.fmt.bufPrint(&buf, "{d}{d}", .{ num1, num2 });
-    const final = try std.fmt.parseUnsigned(T, numAsString, 10);
+pub fn concatNum(comptime T: type, num1: T, num2: T) T {
+    const final: u64 = num1 * std.math.pow(u64, 10, findDigits(num2)) + num2;
     return final;
 }
 
-pub fn checkOperators(target: u64, nums: []u64, power: u8) !bool {
-    // print("TARGET: {d}, NUMS: {d}\n", .{ target, nums });
-    for (0..std.math.pow(usize, power, nums.len - 1)) |i| {
-        var start = nums[0];
-        for (nums[1..], 0..) |new, n| {
-            const operation: usize = (i / std.math.pow(usize, power, n)) % power;
-            // print("i: {d}, n: {d}, op: {d}\n", .{ i, n, operation });
-            switch (operation) {
-                0 => start += new,
-                1 => start *= new,
-                2 => {
-                    start = try concatNum(u64, start, new);
-                },
-                else => unreachable,
-            }
+pub fn doNextOperation(target: u64, current: u64, nums: []u64, comptime ops: []const Ops) !bool {
+    const next = nums[0];
+    var final: [ops.len]bool = undefined;
+
+    for (ops, 0..) |op, i| {
+        var result = current;
+        // std.debug.print("Target {}, current {}, nums {any}, op {any}, res {}\n", .{ target, current, nums, op, result });
+        switch (op) {
+            Ops.sum => result += next,
+            Ops.mul => result *= next,
+            Ops.conc => {
+                result = concatNum(u64, result, next);
+            },
         }
-        if (start == target) return true;
+
+        if (nums.len == 1) {
+            final[i] = result == target;
+        } else {
+            final[i] = try doNextOperation(target, result, nums[1..], ops);
+        }
     }
-    return false;
+    return for (final) |f| {
+        if (f == true) {
+            break true;
+        }
+    } else false;
+}
+
+test "findDigits" {
+    try testing.expect(findDigits(8) == 1);
+    try testing.expect(findDigits(34) == 2);
+    try testing.expect(findDigits(999) == 3);
+    try testing.expect(findDigits(12345678) == 8);
 }
 
 test "concatNum" {
-    const num1: u64 = 13;
-    const num2: u64 = 37;
-    try testing.expect(try concatNum(u64, num1, num2) == 1337);
+    try testing.expect(concatNum(u64, 8, 4) == 84);
+    try testing.expect(concatNum(u64, 20, 5) == 205);
+    try testing.expect(concatNum(u64, 345, 678) == 345678);
+    try testing.expect(concatNum(u64, 8945, 4) == 89454);
 }
 
-test "checkOperators" {
+test "doNextOperation" {
+    const ops1 = [_]Ops{ Ops.sum, Ops.mul };
     var sample1 = [_]u64{ 81, 40, 27 };
-    try testing.expect(try checkOperators(3267, &sample1, 2));
+    try testing.expect(try doNextOperation(3267, sample1[0], sample1[1..], &ops1));
     var sample2 = [_]u64{ 6, 8, 6, 15 };
-    try testing.expect(!try checkOperators(7290, &sample2, 2));
+    try testing.expect(!try doNextOperation(7290, sample1[0], sample2[1..], &ops1));
 }
 
 test "checkLines" {
-    const allocator = testing.allocator;
+    var buffer: [16]u64 = undefined;
+    const ops1 = [_]Ops{ Ops.sum, Ops.mul };
     const sample1 = "190: 10 19";
-    try testing.expect(try checkLine(allocator, sample1, 2) == 190);
+    try testing.expect(try checkLine(&buffer, sample1, &ops1) == 190);
     const sample2 = "3267: 81 40 27";
-    try testing.expect(try checkLine(allocator, sample2, 2) == 3267);
+    try testing.expect(try checkLine(&buffer, sample2, &ops1) == 3267);
 
     const sample3 = "83: 17 5";
-    try testing.expect(try checkLine(allocator, sample3, 2) == 0);
+    try testing.expect(try checkLine(&buffer, sample3, &ops1) == 0);
     const sample4 = "156: 15 6";
-    try testing.expect(try checkLine(allocator, sample4, 2) == 0);
+    try testing.expect(try checkLine(&buffer, sample4, &ops1) == 0);
     const sample5 = "7290: 6 8 6 15";
-    try testing.expect(try checkLine(allocator, sample5, 2) == 0);
+    try testing.expect(try checkLine(&buffer, sample5, &ops1) == 0);
     const sample6 = "161011: 16 10 13";
-    try testing.expect(try checkLine(allocator, sample6, 2) == 0);
+    try testing.expect(try checkLine(&buffer, sample6, &ops1) == 0);
     const sample7 = "192: 17 8 14";
-    try testing.expect(try checkLine(allocator, sample7, 2) == 0);
+    try testing.expect(try checkLine(&buffer, sample7, &ops1) == 0);
     const sample8 = "21037: 9 7 18 13";
-    try testing.expect(try checkLine(allocator, sample8, 2) == 0);
+    try testing.expect(try checkLine(&buffer, sample8, &ops1) == 0);
     const sample9 = "292: 11 6 16 20";
-    try testing.expect(try checkLine(allocator, sample9, 2) == 292);
+    try testing.expect(try checkLine(&buffer, sample9, &ops1) == 292);
 }
