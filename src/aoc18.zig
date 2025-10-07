@@ -19,6 +19,15 @@ pub fn calcDistance(start: [2]usize, end: [2]usize) !usize {
     return move_distance;
 }
 
+pub fn posInNodeList(nodes: []Node, pos: [2]usize) bool {
+    for (nodes) |node| {
+        if (std.mem.eql(usize, &node.pos, &pos)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 pub fn aStarAlgo(allocator: std.mem.Allocator, comptime rows: u8, comptime cols: u8, matrix: *[rows][cols]u8, start: [2]usize, end: [2]usize) !?std.ArrayListUnmanaged(Node) {
     var unexplored_nodes: std.AutoHashMapUnmanaged([2]usize, Node) = .empty;
     defer unexplored_nodes.deinit(allocator);
@@ -137,32 +146,37 @@ pub fn main() !void {
     var path = (try aStarAlgo(allocator, rows, cols, &matrix, [2]usize{ 0, 0 }, [2]usize{ rows - 1, cols - 1 })).?;
     defer path.deinit(allocator);
 
-    for (path.items) |node| {
-        matrix[node.pos[0]][node.pos[1]] = 'O';
-    }
+    // for (path.items) |node| {
+    //     matrix[node.pos[0]][node.pos[1]] = 'O';
+    // }
     // printMap(matrix);
 
-    var res: usize = 0;
+    print("Part 1: {d}\n", .{path.items.len});
 
-    for (matrix) |row| {
-        for (row) |cell| {
-            if (cell == 'O') res += 1;
-        }
-    }
+    var current_path = try path.clone(allocator);
+    defer current_path.deinit(allocator);
 
-    print("Part 1: {d}\n", .{res});
-
-    for (n..bytes.items.len) |i| {
-        const byte = bytes.items[i];
+    for (bytes.items, 0..) |byte, i| {
         matrix[byte[0]][byte[1]] = '#';
-        var path2 = try aStarAlgo(allocator, rows, cols, &matrix, [2]usize{ 0, 0 }, [2]usize{ rows - 1, cols - 1 });
-        if (path2 == null) {
-            print("Part 2: {d},{d} at {d}\n", .{ byte[1], byte[0], i });
-            break;
-        } else {
-            path2.?.deinit(allocator);
+        if (posInNodeList(current_path.items, byte)) {
+            const next_path = try aStarAlgo(allocator, rows, cols, &matrix, [2]usize{ 0, 0 }, [2]usize{ rows - 1, cols - 1 });
+            if (next_path == null) {
+                print("Part 2: {d},{d} at {d}\n", .{ byte[1], byte[0], i });
+                break;
+            } else {
+                current_path.clearAndFree(allocator);
+                current_path = try next_path.?.clone(allocator);
+            }
         }
     }
+}
+
+test "posInNodeList" {
+    var list = [_]Node{ .{ .pos = .{ 1, 2 }, .f = 1, .g = 1, .h = 1, .previous = .{ 5, 5 } }, .{ .pos = .{ 5, 5 }, .f = 1, .g = 1, .h = 1, .previous = .{ 5, 5 } } };
+    const item1 = [2]usize{ 1, 2 };
+    try testing.expect(posInNodeList(&list, item1));
+    const item2 = [2]usize{ 1, 5 };
+    try testing.expect(!posInNodeList(&list, item2));
 }
 
 test "sample" {
